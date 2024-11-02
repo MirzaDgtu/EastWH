@@ -8,7 +8,7 @@ type UserRepository interface {
 	Logout(int) error
 	Restore(string) (string, error)
 	ChangePassword(int, string) error
-	All() (users []model.User, error)
+	All() ([]model.User, error)
 	Profile(uint) (model.User, error)
 	Update(model.User) (model.User, error)
 }
