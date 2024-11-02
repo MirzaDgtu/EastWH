@@ -26,7 +26,7 @@ func (r *UserRepository) ChangePassword(int, string) error {
 	return nil
 }
 
-func (r *UserRepository) All(users []model.User, err error) {
+func (r *UserRepository) All() (users []model.User, err error) {
 	return users, r.store.db.Preload("").Preload("").Preload("").Find(&users).Error
 }
 
