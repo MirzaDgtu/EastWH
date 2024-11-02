@@ -1,6 +1,4 @@
 package sqlstore
-<<<<<<< HEAD
-=======
 
 import "eastwh/internal/model"
 
@@ -41,4 +39,3 @@ func (r *UserRoleRepository) ByRoleID(roleID uint) (userroles []model.UserRole, 
 func (r *UserRoleRepository) All() (userroles []model.UserRole, err error) {
 	return userroles, r.store.db.Find(&userroles).Error
 }
->>>>>>> 7806773d89dd16394f5140f59697b6e30d089ac6

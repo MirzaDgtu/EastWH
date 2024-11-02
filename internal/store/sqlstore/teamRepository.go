@@ -1,6 +1,4 @@
 package sqlstore
-<<<<<<< HEAD
-=======
 
 import "eastwh/internal/model"
 
@@ -35,4 +33,3 @@ func (r *TeamRepository) Delete(id uint) error {
 	}
 	return r.store.db.Delete(&team).Error
 }
->>>>>>> 7806773d89dd16394f5140f59697b6e30d089ac6

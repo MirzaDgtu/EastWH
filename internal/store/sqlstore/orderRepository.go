@@ -1,6 +1,4 @@
 package sqlstore
-<<<<<<< HEAD
-=======
 
 import "eastwh/internal/model"
 
@@ -28,4 +26,3 @@ func (r *OrderRepository) ByDateRange(dtStart string, dtFinish string) (orders [
 func (r *OrderRepository) All() (orders []model.Order, err error) {
 	return orders, r.store.db.Find(&orders).Error
 }
->>>>>>> 7806773d89dd16394f5140f59697b6e30d089ac6
