@@ -1,9 +1,22 @@
 package sqlstore
 
-import "gorm.io/gorm"
+import (
+	"eastwh/internal/store"
+
+	"gorm.io/gorm"
+)
 
 type Store struct {
-	db *gorm.DB
+	db                    *gorm.DB
+	userRepository        *UserRepository
+	userTeamRepository    *UserTeamRepository
+	userRoleRepository    *UserRoleRepository
+	userProjectRepository *UserProjectRepository
+	teamRepository        *TeamRepository
+	orderRepository       *OrderRepository
+	projectRepository     *ProjectRepository
+	employeeRepository    *EmployeeRepository
+	roleRepository        *RoleRepository
 }
 
 func New(db *gorm.DB) *Store {
@@ -11,3 +24,16 @@ func New(db *gorm.DB) *Store {
 		db: db,
 	}
 }
+
+func (s *Store) User() store.UserRepository {
+	if s.userRepository != nil {
+		return s.userRepository
+	}
+
+	s.userRepository = &UserRepository{
+		store: s,
+	}
+
+	return s.userRepository
+}
+
