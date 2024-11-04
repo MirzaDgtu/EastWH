@@ -112,7 +112,12 @@ func (r *UserRepository) All() (users []model.User, err error) {
 }
 
 func (r *UserRepository) Profile(id uint) (u model.User, err error) {
-	return u, r.store.db.First(&u, id).Error
+	err = r.store.db.First(&u, id).Error
+	if err != nil {
+		return model.User{}, err
+	}
+	u.Password = ""
+	return u, nil
 }
 
 func (r *UserRepository) Update(u model.User) (model.User, error) {

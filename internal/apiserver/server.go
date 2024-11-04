@@ -67,6 +67,7 @@ func (s *server) configureRouter() {
 			userGroup.PUT("/update/", s.UpdateUser)
 			userGroup.POST("/update/password/", s.UpdatePassword)
 			userGroup.POST("/block/", s.BlockedUser)
+			userGroup.GET("/profile/", s.GetUserProfile)
 		}
 
 		usersGroup := apiGroup.Group("/users")
@@ -75,6 +76,12 @@ func (s *server) configureRouter() {
 			usersGroup.POST("/login", s.Login)
 			usersGroup.GET("", s.GetUsers)
 			usersGroup.POST("/password/restore", s.RestoreUserPassword)
+		}
+
+		employeesGroup := apiGroup.Group("/employees")
+		{
+			employeesGroup.POST("", s.AddEmployee)
+			employeesGroup.GET("", s.GetEmployees)
 		}
 	}
 }
@@ -130,6 +137,16 @@ func (s *server) AuthMW(ctx *gin.Context) {
 	ctx.Next()
 }
 
+func createAndSignJWT(user *model.User) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"userID": user.ID,
+		"ttl":    time.Now().Add(time.Hour * 24 * 100).Unix(),
+	})
+
+	return token.SignedString([]byte(hmacSampleSecret))
+}
+
+// User ...
 func (s *server) AddUser(ctx *gin.Context) {
 	var user model.User
 
@@ -149,15 +166,6 @@ func (s *server) AddUser(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusCreated, gin.H{"message": "Пользователь успешно создан",
 		"user": user})
-}
-
-func createAndSignJWT(user *model.User) (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"userID": user.ID,
-		"ttl":    time.Now().Add(time.Hour * 24 * 100).Unix(),
-	})
-
-	return token.SignedString([]byte(hmacSampleSecret))
 }
 
 func (s *server) UpdateUser(ctx *gin.Context) {
@@ -354,4 +362,60 @@ func (s *server) BlockedUser(ctx *gin.Context) {
 		msg = "Пользователь " + pID + " разблокирован"
 	}
 	ctx.JSON(http.StatusOK, msg)
+}
+
+func (s *server) GetUserProfile(ctx *gin.Context) {
+	pID := ctx.Query("id")
+	ID, err := strconv.Atoi(pID)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Проверьте корректность ID",
+			"error": err.Error()})
+		return
+	}
+
+	user, err := s.store.User().Profile(uint(ID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения профиля пользователя",
+			"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, user)
+}
+
+// Employee...
+func (s *server) AddEmployee(ctx *gin.Context) {
+	var employees []model.Employee
+
+	err := ctx.ShouldBindJSON(&employees)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Ошибка чтения данных",
+			"error": err.Error()})
+		return
+	}
+
+	var addedEmployees []model.Employee
+	for _, req := range employees {
+		employee, err := s.store.Employee().Add(req)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка добавления сотрудника",
+				"error": err.Error()})
+			continue
+		} else {
+			addedEmployees = append(addedEmployees, employee)
+		}
+	}
+
+	ctx.JSON(http.StatusCreated, addedEmployees)
+}
+
+func (s *server) GetEmployees(ctx *gin.Context) {
+	employees, err := s.store.Employee().All()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения списка сотрудников",
+			"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, employees)
 }
