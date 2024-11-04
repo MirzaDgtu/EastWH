@@ -14,6 +14,10 @@ func (r *UserRoleRepository) Update(userrole model.UserRole) (model.UserRole, er
 	return userrole, r.store.db.Save(&userrole).Error
 }
 
+func (r *UserRepository) UpdateToken(id uint, token string) error {
+	return r.store.db.Model(&model.User{}).Where("id=?", id).Update("token", token).Error
+}
+
 func (r *UserRoleRepository) Delete(id uint) error {
 	var ur model.UserRole
 	result := r.store.db.Table("userroles").Where("id=,", id)

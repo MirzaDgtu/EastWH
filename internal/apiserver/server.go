@@ -1,13 +1,18 @@
 package apiserver
 
 import (
+	"eastwh/internal/model"
 	"eastwh/internal/store"
 	"errors"
 	"fmt"
+	"net/http"
+	"strconv"
 	"time"
+	"unicode/utf8"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 var (
@@ -53,31 +58,15 @@ func newServer(store store.Store) *server {
 	return s
 }
 
-func CORSMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT")
-
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
-			return
-		}
-
-		c.Next()
-	}
-}
-
 func (s *server) configureRouter() {
 	apiGroup := s.router.Group("/api/v1")
 	{
-		userGroup := apiGroup.Group("/user", s.AuthMW)
+		userGroup := apiGroup.Group("/user") //, s.AuthMW
 		{
 			userGroup.POST("/logout/", s.Logout)
-			userGroup.POST("/update", s.UpdateUser)
-			userGroup.POST("/update/pass", s.UpdatePassword)
-			userGroup.POST("/:id/block/", s.BlockedUser)
+			userGroup.PUT("/update/", s.UpdateUser)
+			userGroup.POST("/update/password/", s.UpdatePassword)
+			userGroup.POST("/block/", s.BlockedUser)
 		}
 
 		usersGroup := apiGroup.Group("/users")
@@ -85,43 +74,284 @@ func (s *server) configureRouter() {
 			usersGroup.POST("", s.AddUser)
 			usersGroup.POST("/login", s.Login)
 			usersGroup.GET("", s.GetUsers)
-			usersGroup.POST("/password/restore", s.SetUserTemporaryPassword)
+			usersGroup.POST("/password/restore", s.RestoreUserPassword)
 		}
 	}
 }
 
-func (s *server) AddUser(ctx *gin.Context) {
+func setCookie(ctx *gin.Context, token string) {
+	ctx.SetSameSite(http.SameSiteLaxMode)
+	ctx.SetCookie("Auth", token, 3600*24*100, "", "", false, true)
+}
 
+func (s *server) AuthMW(ctx *gin.Context) {
+	// Получение токена из куки
+	tokenStr, err := ctx.Cookie("Auth")
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "No auth token"})
+		ctx.Abort()
+	}
+
+	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
+		// Don't forget to validate the alg is what you expect:
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+		}
+
+		// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
+		return []byte(hmacSampleSecret), nil
+	})
+
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Failed to parse JWT"})
+		ctx.Abort()
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "JWT Claims failed"})
+		ctx.Abort()
+	}
+
+	if claims["ttl"].(float64) < float64(time.Now().Unix()) {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "JWT token expired"})
+		ctx.Abort()
+	}
+
+	user, err := s.store.User().ByID(uint((claims["userID"].(float64))))
+
+	if user.ID == 0 {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Could not find the user!"})
+		ctx.Abort()
+	}
+
+	ctx.Set("user", user)
+
+	ctx.Next()
+}
+
+func (s *server) AddUser(ctx *gin.Context) {
+	var user model.User
+
+	err := ctx.ShouldBindJSON(&user)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Ошибка создания пользователя",
+			"error": err.Error()})
+		return
+	}
+
+	user, err = s.store.User().Add(user)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка создания пользователя",
+			"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, gin.H{"message": "Пользователь успешно создан",
+		"user": user})
+}
+
+func createAndSignJWT(user *model.User) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"userID": user.ID,
+		"ttl":    time.Now().Add(time.Hour * 24 * 100).Unix(),
+	})
+
+	return token.SignedString([]byte(hmacSampleSecret))
 }
 
 func (s *server) UpdateUser(ctx *gin.Context) {
+	pID := ctx.Query("id")
+	ID, err := strconv.Atoi(pID)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Проверьте корректность ID",
+			"error": err.Error()})
+		return
+	}
 
+	var user model.User
+	err = ctx.ShouldBindJSON(&user)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Проверьте корректность обновляемых данных",
+			"error": err.Error()})
+		return
+	}
+
+	user.ID = uint(ID)
+
+	user, err = s.store.User().Update(user)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка обновления данных пользователя",
+			"error": err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Данные пользователя успешно обновлены",
+		"user": user})
 }
 
 func (s *server) Login(ctx *gin.Context) {
+	type request struct {
+		Email    string `json:"email" validate:"required"`
+		Password string `json:"password" validate:"required"`
+	}
 
+	var req request
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Проверьте корректность введенных данных",
+			"error": err.Error()})
+		return
+	}
+
+	user, err := s.store.User().Login(req.Email, req.Password)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Ошибка авторизации",
+			"error": errIncorrectEmailOrPassword})
+		return
+	}
+
+	tokenString, err := createAndSignJWT(&user)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"messge": "Ошибка создания JWT токена",
+			"error": err.Error()})
+		return
+	}
+
+	err = s.store.User().UpdateToken(user.ID, tokenString)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка обновления JWT токена",
+			"error": err.Error()})
+		return
+	}
+
+	user.Token = tokenString
+	setCookie(ctx, tokenString)
+	ctx.JSON(http.StatusOK, gin.H{"message": "Вы успешно авторизованы",
+		"user": user})
 }
 
-func (s *server) AddLoginUser(ctx *gin.Context) {
+func (s *server) RestoreUserPassword(ctx *gin.Context) {
+	email := ctx.Query("email")
 
-}
+	if utf8.RuneCountInString(email) == 0 {
+		ctx.JSON(http.StatusNoContent, gin.H{"error": "Email не должен быть пустым"})
+		return
+	}
 
-func (s *server) SetUserTemporaryPassword(ctx *gin.Context) {
+	password, err := s.store.User().Restore(email)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка установки временного пароля",
+			"error": err.Error()})
+		return
+	}
 
+	ctx.JSON(http.StatusOK, gin.H{"password": password})
 }
 
 func (s *server) GetUsers(ctx *gin.Context) {
+	users, err := s.store.User().All()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения списка пользователей",
+			"error": err.Error()})
+		return
+	}
 
+	ctx.JSON(http.StatusOK, users)
 }
 
 func (s *server) Logout(ctx *gin.Context) {
+	pID := ctx.Query("id")
+	ID, err := strconv.Atoi(pID)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Проверьте корректность ID",
+			"error": err.Error()})
+		return
+	}
 
+	err = s.store.User().Logout(uint(ID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка выхода из аккаунта",
+			"error": err.Error()})
+		return
+	}
+
+	ctx.SetCookie("Auth", "deleted", 0, "", "", false, false)
+
+	ctx.JSON(http.StatusAccepted, gin.H{"message": "Вы успешно вышли из аккаунта"})
 }
 
 func (s *server) UpdatePassword(ctx *gin.Context) {
+	pID := ctx.Query("id")
+	ID, err := strconv.Atoi(pID)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Проверьте корректность ID",
+			"error": err.Error()})
+		return
+	}
 
+	type request struct {
+		Password string
+	}
+	var req request
+	err = ctx.ShouldBindJSON(&req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Проверьте корректность введенного пароля",
+			"error": err.Error()})
+		return
+	}
+
+	if utf8.RuneCountInString(req.Password) <= 6 {
+		ctx.JSON(http.StatusNoContent, gin.H{"error": "Длина пароля должна быть не меньше 6"})
+		return
+	}
+
+	fmt.Println(ID, " ", req.Password)
+
+	err = s.store.User().ChangePassword(uint(ID), req.Password)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка изменения пароля пользователя",
+			"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Пароль успешно изменен"})
 }
 
 func (s *server) BlockedUser(ctx *gin.Context) {
+	pID := ctx.Query("id")
+	ID, err := strconv.Atoi(pID)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Проверьте корректность ID",
+			"error": err.Error()})
+		return
+	}
 
+	type request struct {
+		Blocked bool `json:"blocked"`
+	}
+	var req request
+
+	err = ctx.ShouldBindJSON(&req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Проверьте корректность значения блокировки",
+			"error": err.Error()})
+		return
+	}
+
+	err = s.store.User().BlockedUser(uint(ID), req.Blocked)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка блокировки пользователя",
+			"error": err.Error()})
+		return
+	}
+
+	var msg string
+	if req.Blocked {
+		msg = "Пользователь " + pID + " заблокирован"
+	} else {
+		msg = "Пользователь " + pID + " разблокирован"
+	}
+	ctx.JSON(http.StatusOK, msg)
 }

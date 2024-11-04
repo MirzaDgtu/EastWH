@@ -1,7 +1,9 @@
 package sqlstore
 
 import (
+	"crypto/rand"
 	"eastwh/internal/model"
+	"encoding/base64"
 	"errors"
 	"fmt"
 
@@ -14,7 +16,9 @@ type UserRepository struct {
 }
 
 func (r *UserRepository) Add(u model.User) (model.User, error) {
+	hashPassword(&u.Password)
 	err := r.store.db.Create(&u).Error
+	u.Password = ""
 	return u, err
 }
 
@@ -46,31 +50,44 @@ func checkPassword(existingHash, incomingPass string) bool {
 	return bcrypt.CompareHashAndPassword([]byte(existingHash), []byte(incomingPass)) == nil
 }
 
-func (r *UserRepository) Logout(id int) error {
+func (r *UserRepository) Logout(id uint) error {
 	user := model.User{
 		Model: gorm.Model{
-			ID: uint(id),
+			ID: id,
 		},
 	}
 
 	return r.store.db.Model(&user).Where("id = ?", id).Updates(map[string]interface{}{"loggedin": 0,
-		"token":         "",
-		"refresh_token": ""}).Error
+		"token": ""}).Error
 }
 
 func (r *UserRepository) Restore(email string) (password string, err error) {
-	return password, nil
+	pass, err := generateTemporaryPassword()
+	if err != nil {
+		return "", err
+	}
+
+	var user model.User
+	result := r.store.db.Table("users").Where("email=?", email)
+	err = result.First(&user).Error
+	if err != nil {
+		return "", err
+	}
+
+	hPass := pass
+	hashPassword(&hPass)
+	return pass, r.store.db.Model(&model.User{}).Where("id=?", user.ID).Updates(map[string]interface{}{"password": hPass,
+		"restore": true}).Error
 }
 
-func (r *UserRepository) ChangePassword(id int, password string) error {
-	fmt.Println(password)
+func (r *UserRepository) ChangePassword(id uint, password string) error {
 	err := hashPassword(&password)
 	if err != nil {
 		return err
 	}
 
-	var user model.User
-	return r.store.db.Model(&user).Where("id=?", id).Updates(map[string]interface{}{"pass": password,
+	fmt.Println("id - ", id)
+	return r.store.db.Model(&model.User{}).Where("id=?", id).Updates(map[string]interface{}{"password": password,
 		"restore": false}).Error
 }
 
@@ -94,19 +111,40 @@ func (r *UserRepository) All() (users []model.User, err error) {
 	return users, r.store.db.Preload("").Preload("").Preload("").Find(&users).Error
 }
 
-func (r *UserRepository) Profile(uint) (u model.User, err error) {
-	return u, nil
+func (r *UserRepository) Profile(id uint) (u model.User, err error) {
+	return u, r.store.db.First(&u, id).Error
 }
 
 func (r *UserRepository) Update(u model.User) (model.User, error) {
-	err := r.store.db.Model(&u).Updates(map[string]interface{}{"firstname": u.FirstName,
-		"lastName": u.LastName,
-		"Name":     u.Name,
-		"Phone":    u.Phone}).Error
+	err := r.store.db.Model(&u).Updates(map[string]interface{}{"first_name": u.FirstName,
+		"last_name": u.LastName,
+		"name":      u.Name,
+		"phone":     u.Phone}).Error
 	if err != nil {
-		return u, err
+		return model.User{}, err
 	}
 
 	u.Password = ""
 	return u, nil
+}
+
+func (r *UserRepository) ByID(id uint) (u model.User, err error) {
+	return u, r.store.db.First(&u, id).Error
+}
+
+func (r *UserRepository) ByEmail(email string) (u model.User, err error) {
+	return u, r.store.db.Where("email=?", email).First(&u).Error
+}
+
+func (r *UserRepository) BlockedUser(id uint, blocked bool) error {
+	return r.store.db.Model(&model.User{}).Where("id=?", id).Update("blocked", blocked).Error
+}
+
+// Функция для генерации временного пароля
+func generateTemporaryPassword() (string, error) {
+	bytes := make([]byte, 6) // Длина пароля
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	return base64.URLEncoding.EncodeToString(bytes), nil
 }

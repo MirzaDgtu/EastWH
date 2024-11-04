@@ -19,8 +19,6 @@ import (
 func Start(config *Config) error {
 	gin.DisableConsoleColor()
 	f, _ := os.Create("log\\gin.log")
-	//	ct := time.Now()
-	//	f, _ := os.Create("log\\log-" + ct.Format(time.DateTime) + ".log")
 	gin.DefaultWriter = io.MultiWriter(f)
 
 	db, err := newDB(config.DatabaseURL)
@@ -71,8 +69,7 @@ func dbMigrate(db *gorm.DB) {
 	db.AutoMigrate(&model.User{}, &model.UserRole{}, &model.UserProject{}, &model.UserTeam{})
 	db.AutoMigrate(&model.Order{})
 	db.AutoMigrate(&model.Employee{})
-	db.AutoMigrate(&model.Role{}) 
+	db.AutoMigrate(&model.Role{})
 	db.AutoMigrate(&model.Team{})
 	db.AutoMigrate(&model.Project{})
-	
 }
