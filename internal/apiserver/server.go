@@ -61,6 +61,11 @@ func newServer(store store.Store) *server {
 func (s *server) configureRouter() {
 	apiGroup := s.router.Group("/api/v1")
 	{
+
+		apiGroup.GET("/ping", func(ctx *gin.Context) {
+			ctx.JSON(http.StatusOK, gin.H{"message": "pong"})
+		})
+
 		userGroup := apiGroup.Group("/user") //, s.AuthMW
 		{
 			userGroup.POST("/logout/", s.Logout)
@@ -82,6 +87,10 @@ func (s *server) configureRouter() {
 		{
 			employeesGroup.POST("", s.AddEmployee)
 			employeesGroup.GET("", s.GetEmployees)
+		}
+		employeeGroup := apiGroup.Group("/employee")
+		{
+			employeeGroup.GET("/id", s.GetEmployeeByID)
 		}
 	}
 }
@@ -418,4 +427,20 @@ func (s *server) GetEmployees(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, employees)
+}
+
+func (s *server) GetEmployeeByID(ctx *gin.Context) {
+	pID := ctx.Query("id")
+	ID, err := strconv.Atoi(pID)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	employee, err := s.store.Employee().ByID(uint(ID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, employee)
+
 }

@@ -43,6 +43,7 @@ func (r *UserRepository) Login(email, password string) (user model.User, err err
 		return model.User{}, err
 	}
 
+	user.Password = ""
 	return user, nil
 }
 
