@@ -7,16 +7,32 @@ type OrderRepository struct {
 }
 
 func (r *OrderRepository) Add(u model.Order) (model.Order, error) {
-	err := r.store.db.Create(&u).Error
-	return u, err
+	return u, r.store.db.Create(&u).Error
 }
 
-func (r *OrderRepository) Collector(orderid uint, keeper_id uint, collector_id uint) (bool, error) {
-	return true, nil
+func (r *OrderRepository) SetCollector(orderid uint, keeper_id uint, collector_id uint) error {
+	err := r.store.db.Model(&model.Order{}).Where("id=?", orderid).Updates(map[string]interface{}{
+		"keeper_id":    keeper_id,
+		"collector_id": collector_id,
+	}).Error
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (r *OrderRepository) ByUserID(UserId uint) (order []model.Order, err error) {
-	return order, r.store.db.Where("orders.user_id=?", UserId).Find(&order).Error
+func (r *OrderRepository) ByUserID(userID uint) (order []model.Order, err error) {
+	return order, r.store.db.Where("user_id=?", userID).Find(&order).Error
+}
+
+func (r *OrderRepository) ByID(ID uint) (order []model.Order, err error) {
+	return order, r.store.db.Where("id=?", ID).Find(&order).Error
+}
+
+func (r *OrderRepository) ByOrderUID(orderUID uint) (order []model.Order, err error) {
+	return order, r.store.db.Where("order_uid=?", orderUID).Find(&order).Error
 }
 
 func (r *OrderRepository) ByDateRange(dtStart string, dtFinish string) (orders []model.Order, err error) {

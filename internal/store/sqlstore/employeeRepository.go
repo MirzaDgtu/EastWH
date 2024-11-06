@@ -25,7 +25,14 @@ func (r *EmployeeRepository) ByCode(code string) (employee model.Employee, err e
 }
 
 func (r *EmployeeRepository) Update(u model.Employee) (model.Employee, error) {
-	return u, r.store.db.Table("employees").Save(&u).Error
+	return u, r.store.db.Model(&model.Employee{}).Where("id=?", u.ID).Updates(map[string]interface{}{
+		"code":       u.Code,
+		"first_name": u.FirstName,
+		"name":       u.Name,
+		"last_name":  u.LastName,
+		"inn":        u.INN,
+		"phone":      u.Phone,
+	}).Error
 }
 
 func (r *EmployeeRepository) Delete(id uint) error {

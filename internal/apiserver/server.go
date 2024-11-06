@@ -88,9 +88,27 @@ func (s *server) configureRouter() {
 			employeesGroup.POST("", s.AddEmployee)
 			employeesGroup.GET("", s.GetEmployees)
 		}
+
 		employeeGroup := apiGroup.Group("/employee")
 		{
-			employeeGroup.GET("/id", s.GetEmployeeByID)
+			employeeGroup.GET("/", s.GetEmployeeByID)
+			employeeGroup.PUT("/update/", s.UpdateEmployee)
+			employeeGroup.DELETE("/delete/", s.DeleteEmployee)
+		}
+
+		orderGroup := apiGroup.Group("/order")
+		{
+			orderGroup.GET("/", s.GetOrderByID)
+			orderGroup.GET("/uid/", s.GetOrderByUID)
+			orderGroup.PUT("/update/collector", s.UpdateCollector)
+		}
+
+		ordersGroup := apiGroup.Group("/orders")
+		{
+			ordersGroup.GET("/user/", s.GetOrdersByUserId)
+			ordersGroup.GET("/daterange", s.GerOrderByDateRange)
+			ordersGroup.POST("", s.AddOrders)
+			ordersGroup.GET("", s.GetOrders)
 		}
 	}
 }
@@ -433,14 +451,201 @@ func (s *server) GetEmployeeByID(ctx *gin.Context) {
 	pID := ctx.Query("id")
 	ID, err := strconv.Atoi(pID)
 	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Проверьте корректность ID",
+			"error": err.Error()})
+		return
+	}
+
+	employee, err := s.store.Employee().ByID(uint(ID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения сотрудника по ID",
+			"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, employee)
+}
+
+func (s *server) UpdateEmployee(ctx *gin.Context) {
+	pID := ctx.Query("id")
+	ID, err := strconv.Atoi(pID)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Проверьте корректность ID",
+			"error": err.Error()})
+		return
+	}
+
+	var employee model.Employee
+	err = ctx.ShouldBindJSON(&employee)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Проверьте корректность обновляемых данных",
+			"error": err.Error()})
+		return
+	}
+
+	employee.ID = uint(ID)
+	employee, err = s.store.Employee().Update(employee)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка обновления данных сотрудника",
+			"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Данные сотрудника успешно обновлены",
+		"employee": employee})
+}
+
+func (s *server) DeleteEmployee(ctx *gin.Context) {
+	pID := ctx.Query("id")
+	ID, err := strconv.Atoi(pID)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Проверьте корректность ID",
+			"error": err.Error()})
+		return
+	}
+
+	err = s.store.Employee().Delete(uint(ID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка удаления сотрудника по ID",
+			"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{"message": "Данные сотрудника успешно удалены"})
+}
+
+// Order...
+func (s *server) GetOrderByID(ctx *gin.Context) {
+	pID := ctx.Query("id")
+	ID, err := strconv.Atoi(pID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Проверьте корректность ID",
+			"error": err.Error()})
+		return
+	}
+
+	order, err := s.store.Order().ByID(uint(ID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения заказа по ID",
+			"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, order)
+}
+
+func (s *server) GetOrderByUID(ctx *gin.Context) {
+	pID := ctx.Query("order_uid")
+	OrderUID, err := strconv.Atoi(pID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Проверьте корректность OrderUID",
+			"error": err.Error()})
+		return
+	}
+
+	order, err := s.store.Order().ByOrderUID(uint(OrderUID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения заказа по OrderUID",
+			"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, order)
+}
+
+func (s *server) GetOrdersByUserId(ctx *gin.Context) {
+	pID := ctx.Query("user_id")
+	UserID, err := strconv.Atoi(pID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Проверьте корректность UserUID",
+			"error": err.Error()})
+		return
+	}
+
+	order, err := s.store.Order().ByUserID(uint(UserID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения заказа по UserUID",
+			"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, order)
+}
+
+func (s *server) UpdateCollector(ctx *gin.Context) {
+	type request struct {
+		OrderUID    uint `json:"order_uid"`
+		KeeperID    uint `json:"keeper_id"`
+		CollectorID uint `json:"collector_id"`
+	}
+
+	var req request
+
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Проверьте корректность передаваемых данных",
+			"error": err.Error(),
+		})
+		return
+	}
+
+	err = s.store.Order().SetCollector(req.OrderUID, req.KeeperID, req.CollectorID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка обновления данных заказа",
+			"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Данные заказа успешно обновлены"})
+}
+
+// сомневаюсь
+func (s *server) GerOrderByDateRange(ctx *gin.Context) {
+
+	type request struct {
+		DtStart  string `json:"dt_start"`
+		DtFinish string `json:"dt_finish"`
+	}
+
+	var req request
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	employee, err := s.store.Employee().ByID(uint(ID))
+
+	findedOrders, err := s.store.Order().ByDateRange(req.DtStart, req.DtFinish)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	ctx.JSON(http.StatusOK, employee)
 
+	ctx.JSON(http.StatusOK, findedOrders)
+}
+
+func (s *server) AddOrders(ctx *gin.Context) {
+	var order model.Order
+
+	err := ctx.ShouldBindJSON(&order)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Ошибка создания заказа",
+			"error": err.Error()})
+		return
+	}
+
+	order, err = s.store.Order().Add(order)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка создания заказа",
+			"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, gin.H{"message": "Заказ успешно создан",
+		"order": order})
+}
+
+func (s *server) GetOrders(ctx *gin.Context) {
+	orders, err := s.store.Order().All()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения списка заказов",
+			"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, orders)
 }
