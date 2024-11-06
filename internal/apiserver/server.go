@@ -100,13 +100,13 @@ func (s *server) configureRouter() {
 		{
 			orderGroup.GET("/", s.GetOrderByID)
 			orderGroup.GET("/uid/", s.GetOrderByUID)
-			orderGroup.PUT("/update/collector", s.UpdateCollector)
+			orderGroup.PUT("/update/collector", s.UpdateOrderCollector)
 		}
 
 		ordersGroup := apiGroup.Group("/orders")
 		{
 			ordersGroup.GET("/user/", s.GetOrdersByUserId)
-			ordersGroup.GET("/daterange", s.GerOrderByDateRange)
+			ordersGroup.GET("/daterange/", s.GerOrderByDateRange)
 			ordersGroup.POST("", s.AddOrders)
 			ordersGroup.GET("", s.GetOrders)
 		}
@@ -567,7 +567,7 @@ func (s *server) GetOrdersByUserId(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, order)
 }
 
-func (s *server) UpdateCollector(ctx *gin.Context) {
+func (s *server) UpdateOrderCollector(ctx *gin.Context) {
 	type request struct {
 		OrderUID    uint `json:"order_uid"`
 		KeeperID    uint `json:"keeper_id"`
