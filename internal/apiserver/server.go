@@ -73,6 +73,23 @@ func (s *server) configureRouter() {
 			userGroup.POST("/update/password/", s.UpdatePassword)
 			userGroup.POST("/block/", s.BlockedUser)
 			userGroup.GET("/profile/", s.GetUserProfile)
+
+			userProjectsGroup := userGroup.Group("/projects")
+			{
+				userProjectsGroup.POST("", s.AddUserProjects)
+				userProjectsGroup.GET("", s.GetUserProjects)
+				userProjectsGroup.GET("/user/id/", s.GetUserProjectsByUserId)
+				userProjectsGroup.GET("/project/id/", s.GetUserProjectsByProjectId)
+			}
+
+			userProjectGroup := userGroup.Group("/project")
+			{
+				userProjectGroup.GET("/id/", s.GetUserProjectById)
+				userProjectGroup.PUT("update/", s.UpdateUserProject)
+				userProjectGroup.DELETE("delete/", s.DeleteUserProject)
+			}
+
+			//userTeamsGroup
 		}
 
 		usersGroup := apiGroup.Group("/users")
@@ -130,13 +147,13 @@ func (s *server) configureRouter() {
 			projectGroup.DELETE("/delete/", s.DeleteProject)
 			projectGroup.PUT("/update/", s.UpdateProject)
 		}
+
 		projectsGroup := apiGroup.Group("/projects")
 		{
 			projectsGroup.POST("", s.AddProject)
 			projectsGroup.GET("", s.GetProjects)
 
 		}
-
 	}
 }
 
@@ -873,6 +890,7 @@ func (s *server) UpdateProject(ctx *gin.Context) {
 	}
 
 	project.ID = uint(ID)
+
 	project, err = s.store.Project().Update(project)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка обновления данных проекта",
@@ -884,3 +902,141 @@ func (s *server) UpdateProject(ctx *gin.Context) {
 		"project": project})
 }
 
+// UserProjects ...
+
+func (s *server) AddUserProjects(ctx *gin.Context) {
+	var userProjects []model.UserProject
+
+	err := ctx.ShouldBindJSON(&userProjects)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Ошибка чтения данных",
+			"error": err.Error()})
+		return
+	}
+
+	var addedUP []model.UserProject
+	for _, req := range userProjects {
+		userProjects, err := s.store.UserProject().Add(req)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка добавления проекта пользователя",
+				"error": err.Error()})
+			continue
+		} else {
+			addedUP = append(addedUP, userProjects)
+		}
+	}
+	ctx.JSON(http.StatusCreated, addedUP)
+}
+
+func (s *server) GetUserProjects(ctx *gin.Context) {
+	up, err := s.store.UserProject().All()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения списка проектов пользователей",
+			"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, up)
+}
+
+func (s *server) GetUserProjectsByUserId(ctx *gin.Context) {
+	pUserID := ctx.Query("user_id")
+	UserID, err := strconv.Atoi(pUserID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Проверьте корректность UserId",
+			"error": err.Error()})
+		return
+	}
+
+	UserProject, err := s.store.UserProject().ByUserID(uint(UserID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения списка проектов пользователей по UserId",
+			"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, UserProject)
+}
+
+func (s *server) GetUserProjectsByProjectId(ctx *gin.Context) {
+	pProjectID := ctx.Query("project_id")
+	ProjectID, err := strconv.Atoi(pProjectID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Проверьте корректность ProjectId",
+			"error": err.Error()})
+		return
+	}
+
+	UserProject, err := s.store.UserProject().ByProjectID(uint(ProjectID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения списка проектов пользователей по ProjectId",
+			"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, UserProject)
+}
+
+func (s *server) GetUserProjectById(ctx *gin.Context) {
+	pID := ctx.Query("id")
+	ID, err := strconv.Atoi(pID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Проверьте корректность ID",
+			"error": err.Error()})
+		return
+	}
+
+	userProject, err := s.store.UserProject().ByID(uint(ID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения проекта пользователя по ID",
+			"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, userProject)
+}
+
+func (s *server) UpdateUserProject(ctx *gin.Context) {
+	pID := ctx.Query("id")
+	ID, err := strconv.Atoi(pID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Проверьте корректность ID",
+			"error": err.Error()})
+		return
+	}
+
+	var userProject model.UserProject
+	err = ctx.ShouldBindJSON(&userProject)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Проверьте корректность передаваемых данных",
+			"error": err.Error()})
+		return
+	}
+
+	userProject.ID = uint(ID)
+
+	userProject, err = s.store.UserProject().Update(userProject)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка обновления информации о проекте пользователя",
+			"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Информация о проекте пользователя успешно обновлена",
+		"user_project": userProject})
+}
+
+func (s *server) DeleteUserProject(ctx *gin.Context) {
+	pID := ctx.Query("id")
+	ID, err := strconv.Atoi(pID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Проверьте корректность ID",
+			"error": err.Error()})
+		return
+	}
+
+	err = s.store.UserProject().Delete(uint(ID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка удаления проекта пользователя",
+			"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Проект пользователя успешно удален"})
+}

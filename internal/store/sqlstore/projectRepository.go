@@ -19,10 +19,8 @@ func (r *ProjectRepository) ByID(id uint) (project model.Project, err error) {
 	return project, r.store.db.First(&project, id).Error
 }
 
-func (r *ProjectRepository) Update(model.Project) (project model.Project, err error) {
-	return project, r.store.db.Model(&model.Project{}).Where("id=?", project.ID).Updates(map[string]interface{}{
-		"name": project.Name,}).Error
-	//return project, r.store.db.Table("projects").Save(&project).Error
+func (r *ProjectRepository) Update(u model.Project) (project model.Project, err error) {
+	return u, r.store.db.Model(&u).Update("name", u.Name).Error
 }
 
 func (r *ProjectRepository) Delete(id uint) error {

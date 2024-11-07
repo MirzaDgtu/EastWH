@@ -15,20 +15,20 @@ func (r *RoleRepository) All() (roles []model.Role, err error) {
 }
 
 func (r *RoleRepository) ByID(id uint) (role model.Role, err error) {
+	role.ID = id
 	return role, r.store.db.First(&role, id).Error
 }
 
-func (r *RoleRepository) Update(model.Role) (role model.Role, err error) {
-	return role, r.store.db.Table("roles").Save(&role).Error
+func (r *RoleRepository) Update(u model.Role) (role model.Role, err error) {
+	return role, r.store.db.Model(&u).Update("name", u.Name).Error
 }
 
-func (r *RoleRepository) Delete(id uint) error{
+func (r *RoleRepository) Delete(id uint) error {
 	var role model.Role
 	result := r.store.db.Table("roles").Where("id=?", id)
 	err := result.First(&role).Error
-	if err!= nil{
-		return err 
+	if err != nil {
+		return err
 	}
 	return r.store.db.Delete(&role).Error
 }
-
