@@ -17,6 +17,20 @@
 [GIN-debug] GET    /api/v1/user/project/     --> eastwh/internal/apiserver.(*server).GetUserProjectById-fm (5 handlers)
 [GIN-debug] PUT    /api/v1/user/project/     --> eastwh/internal/apiserver.(*server).UpdateUserProject-fm (5 handlers)
 [GIN-debug] DELETE /api/v1/user/project/     --> eastwh/internal/apiserver.(*server).DeleteUserProject-fm (5 handlers)
+[GIN-debug] POST   /api/v1/user/roles        --> eastwh/internal/apiserver.(*server).AddUserRoles-fm (5 handlers)
+[GIN-debug] GET    /api/v1/user/roles        --> eastwh/internal/apiserver.(*server).GetUserRoles-fm (5 handlers)
+[GIN-debug] GET    /api/v1/user/roles/user/  --> eastwh/internal/apiserver.(*server).GetUserRolesByUserId-fm (5 handlers)
+[GIN-debug] GET    /api/v1/user/roles/role/  --> eastwh/internal/apiserver.(*server).GetUserRolesByRoleId-fm (5 handlers)
+[GIN-debug] GET    /api/v1/user/role/        --> eastwh/internal/apiserver.(*server).GetUserRoleById-fm (5 handlers)
+[GIN-debug] PUT    /api/v1/user/role/        --> eastwh/internal/apiserver.(*server).UpdateUserRole-fm (5 handlers)
+[GIN-debug] DELETE /api/v1/user/role/        --> eastwh/internal/apiserver.(*server).DeleteUserRole-fm (5 handlers)
+[GIN-debug] POST   /api/v1/user/teams        --> eastwh/internal/apiserver.(*server).AddUserTeams-fm (5 handlers)
+[GIN-debug] GET    /api/v1/user/teams        --> eastwh/internal/apiserver.(*server).GetUserTeams-fm (5 handlers)
+[GIN-debug] GET    /api/v1/user/teams/user/  --> eastwh/internal/apiserver.(*server).GetUserTeamsByUserId-fm (5 handlers)
+[GIN-debug] GET    /api/v1/user/teams/team/  --> eastwh/internal/apiserver.(*server).GetUserTeamsByTeamId-fm (5 handlers)
+[GIN-debug] GET    /api/v1/user/team/        --> eastwh/internal/apiserver.(*server).GetUserTeamById-fm (5 handlers)
+[GIN-debug] PUT    /api/v1/user/team/        --> eastwh/internal/apiserver.(*server).UpdateUserTeam-fm (5 handlers)
+[GIN-debug] DELETE /api/v1/user/team/        --> eastwh/internal/apiserver.(*server).DeleteUserTeam-fm (5 handlers)
 [GIN-debug] POST   /api/v1/users             --> eastwh/internal/apiserver.(*server).AddUser-fm (5 handlers)
 [GIN-debug] POST   /api/v1/users/login       --> eastwh/internal/apiserver.(*server).Login-fm (5 handlers)
 [GIN-debug] GET    /api/v1/users             --> eastwh/internal/apiserver.(*server).GetUsers-fm (5 handlers)
@@ -51,3 +65,4 @@
 [GIN-debug] [WARNING] You trusted all proxies, this is NOT safe. We recommend you to set a value.
 Please check https://pkg.go.dev/github.com/gin-gonic/gin#readme-don-t-trust-all-proxies for details.
 [GIN-debug] Listening and serving HTTP on :8091
+[GIN] 2024/11/07 - 15:05:43 | 201 |    1.6228537s |             ::1 | POST     "/api/v1/orders"

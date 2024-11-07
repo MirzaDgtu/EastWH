@@ -1,12 +1,14 @@
 package apiserver
 
 import (
+	"context"
 	"eastwh/internal/model"
 	"eastwh/internal/store"
 	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 	"unicode/utf8"
 
@@ -88,8 +90,34 @@ func (s *server) configureRouter() {
 				userProjectGroup.PUT("/", s.UpdateUserProject)
 				userProjectGroup.DELETE("/", s.DeleteUserProject)
 			}
+			userRolesGroup := userGroup.Group("/roles")
+			{
+				userRolesGroup.POST("", s.AddUserRoles)
+				userRolesGroup.GET("", s.GetUserRoles)
+				userRolesGroup.GET("/user/", s.GetUserRolesByUserId)
+				userRolesGroup.GET("/role/", s.GetUserRolesByRoleId)
+			}
 
-			//userTeamsGroup
+			userRoleGroup := userGroup.Group("/role")
+			{
+				userRoleGroup.GET("/", s.GetUserRoleById)
+				userRoleGroup.PUT("/", s.UpdateUserRole)
+				userRoleGroup.DELETE("/", s.DeleteUserRole)
+			}
+
+			userTeamsGroup := userGroup.Group("/teams")
+			{
+				userTeamsGroup.POST("", s.AddUserTeams)
+				userTeamsGroup.GET("", s.GetUserTeams)
+				userTeamsGroup.GET("/user/", s.GetUserTeamsByUserId)
+				userTeamsGroup.GET("/team/", s.GetUserTeamsByTeamId)
+			}
+			userTeamGroup := userGroup.Group("team")
+			{
+				userTeamGroup.GET("/", s.GetUserTeamById)
+				userTeamGroup.PUT("/", s.UpdateUserTeam)
+				userTeamGroup.DELETE("/", s.DeleteUserTeam)
+			}
 		}
 
 		usersGroup := apiGroup.Group("/users")
@@ -468,6 +496,7 @@ func (s *server) GetUserProfile(ctx *gin.Context) {
 }
 
 // Employee...
+/*
 func (s *server) AddEmployee(ctx *gin.Context) {
 	var employees []model.Employee
 
@@ -488,6 +517,92 @@ func (s *server) AddEmployee(ctx *gin.Context) {
 		} else {
 			addedEmployees = append(addedEmployees, employee)
 		}
+	}
+
+	ctx.JSON(http.StatusCreated, addedEmployees)
+}
+*/
+
+// Employee handler with goroutines
+func (s *server) AddEmployee(ctx *gin.Context) {
+	var employees []model.Employee
+
+	err := ctx.ShouldBindJSON(&employees)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"message": "Ошибка чтения данных",
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	// Создаем каналы для результатов и ошибок
+	results := make(chan model.Employee, len(employees))
+	errors := make(chan error, len(employees))
+
+	// WaitGroup для отслеживания завершения всех горутин
+	var wg sync.WaitGroup
+
+	// Запускаем горутину для каждого сотрудника
+	for _, emp := range employees {
+		wg.Add(1)
+		go func(emp model.Employee) {
+			defer wg.Done()
+			employee, err := s.store.Employee().Add(emp)
+			if err != nil {
+				errors <- err
+				return
+			}
+			results <- employee
+		}(emp)
+	}
+
+	// Горутина для закрытия каналов после завершения всех операций
+	go func() {
+		wg.Wait()
+		close(results)
+		close(errors)
+	}()
+
+	// Собираем результаты и ошибки
+	var addedEmployees []model.Employee
+	var errorMessages []string
+
+	// Читаем из каналов, пока они не закрыты
+	for {
+		select {
+		case employee, ok := <-results:
+			if !ok {
+				results = nil
+				continue
+			}
+			addedEmployees = append(addedEmployees, employee)
+
+		case err, ok := <-errors:
+			if !ok {
+				errors = nil
+				continue
+			}
+			errorMessages = append(errorMessages, err.Error())
+
+		// Если оба канала закрыты, завершаем цикл
+		default:
+			if results == nil && errors == nil {
+				goto Done
+			}
+		}
+	}
+
+Done:
+	// Формируем ответ
+	response := gin.H{
+		"added_employees": addedEmployees,
+	}
+
+	if len(errorMessages) > 0 {
+		response["errors"] = errorMessages
+		ctx.JSON(http.StatusMultiStatus, response)
+		return
 	}
 
 	ctx.JSON(http.StatusCreated, addedEmployees)
@@ -570,25 +685,157 @@ func (s *server) DeleteEmployee(ctx *gin.Context) {
 }
 
 // Order...
-func (s *server) AddOrders(ctx *gin.Context) {
-	var order model.Order
 
-	err := ctx.ShouldBindJSON(&order)
+/*
+func (s *server) AddOrders(ctx *gin.Context) {
+	var orders []model.Order
+
+	err := ctx.ShouldBindJSON(&orders)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Ошибка проверки данных заказа",
 			"error": err.Error()})
 		return
 	}
 
-	order, err = s.store.Order().Add(order)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка создания заказа",
-			"error": err.Error()})
-		return
+	var addedOrders []model.Order
+	for _, order := range orders {
+		order, err = s.store.Order().Add(order)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка создания заказа",
+				"error": err.Error()})
+			continue
+		} else {
+			addedOrders = append(addedOrders, order)
+		}
 	}
 
 	ctx.JSON(http.StatusCreated, gin.H{"message": "Заказ успешно создан",
-		"order": order})
+		"order": addedOrders})
+}
+*/
+
+func (s *server) AddOrders(ctx *gin.Context) {
+	var orders []model.Order
+
+	err := ctx.ShouldBindJSON(&orders)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"message": "Ошибка проверки данных заказа",
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	// Создаем контекст с таймаутом
+	ctxTimeout, cancel := context.WithTimeout(ctx.Request.Context(), 30*time.Second)
+	defer cancel()
+
+	// Каналы для результатов и ошибок
+	results := make(chan model.Order, len(orders))
+	errors := make(chan struct {
+		order model.Order
+		err   error
+	}, len(orders))
+
+	// WaitGroup для отслеживания завершения всех горутин
+	var wg sync.WaitGroup
+
+	// Запускаем горутину для каждого заказа
+	for _, order := range orders {
+		wg.Add(1)
+		go func(order model.Order) {
+			defer wg.Done()
+
+			// Проверяем контекст перед обработкой
+			select {
+			case <-ctxTimeout.Done():
+				errors <- struct {
+					order model.Order
+					err   error
+				}{order, fmt.Errorf("timeout processing order")}
+				return
+			default:
+			}
+
+			createdOrder, err := s.store.Order().Add(order)
+			if err != nil {
+				errors <- struct {
+					order model.Order
+					err   error
+				}{order, err}
+				return
+			}
+			results <- createdOrder
+		}(order)
+	}
+
+	// Горутина для закрытия каналов после завершения всех операций
+	go func() {
+		wg.Wait()
+		close(results)
+		close(errors)
+	}()
+
+	// Собираем результаты
+	var addedOrders []model.Order
+	var failedOrders []struct {
+		Order   model.Order `json:"order"`
+		Message string      `json:"error"`
+	}
+
+	// Читаем из каналов до их закрытия
+	for {
+		select {
+		case <-ctxTimeout.Done():
+			ctx.JSON(http.StatusGatewayTimeout, gin.H{
+				"message":       "Превышено время ожидания при создании заказов",
+				"added_orders":  addedOrders,
+				"failed_orders": failedOrders,
+				"error":         "timeout",
+			})
+			return
+
+		case order, ok := <-results:
+			if !ok {
+				results = nil
+				continue
+			}
+			addedOrders = append(addedOrders, order)
+
+		case errorData, ok := <-errors:
+			if !ok {
+				errors = nil
+				continue
+			}
+			failedOrders = append(failedOrders, struct {
+				Order   model.Order `json:"order"`
+				Message string      `json:"error"`
+			}{
+				Order:   errorData.order,
+				Message: errorData.err.Error(),
+			})
+
+		default:
+			if results == nil && errors == nil {
+				goto Done
+			}
+		}
+	}
+
+Done:
+	// Формируем итоговый ответ
+	response := gin.H{
+		"message":      "Обработка заказов завершена",
+		"added_orders": addedOrders,
+	}
+
+	if len(failedOrders) > 0 {
+		response["failed_orders"] = failedOrders
+		ctx.JSON(http.StatusMultiStatus, response)
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, response)
 }
 
 func (s *server) GetOrders(ctx *gin.Context) {
@@ -1159,4 +1406,299 @@ func (s *server) DeleteRole(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "Роль успешно удалена"})
+}
+
+// UserRoles ...
+
+func (s *server) AddUserRoles(ctx *gin.Context) {
+	var userRoles []model.UserRole
+
+	err := ctx.ShouldBindJSON(&userRoles)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Ошибка чтения данных",
+			"error": err.Error()})
+		return
+	}
+
+	var addedUP []model.UserRole
+	for _, req := range userRoles {
+		userRoles, err := s.store.UserRole().Add(req)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка добавления роли пользователя",
+
+				"error": err.Error()})
+			continue
+		} else {
+			addedUP = append(addedUP, userRoles)
+		}
+	}
+	ctx.JSON(http.StatusCreated, addedUP)
+}
+
+func (s *server) GetUserRoles(ctx *gin.Context) {
+	up, err := s.store.UserRole().All()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения списка ролей пользователей",
+
+			"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, up)
+}
+
+func (s *server) GetUserRolesByUserId(ctx *gin.Context) {
+	pUserID := ctx.Query("user_id")
+	UserID, err := strconv.Atoi(pUserID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Проверьте корректность UserId",
+			"error": err.Error()})
+		return
+	}
+
+	UserRole, err := s.store.UserRole().ByUserID(uint(UserID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения списка проектов ролей по UserId",
+
+			"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, UserRole)
+}
+
+func (s *server) GetUserRolesByRoleId(ctx *gin.Context) {
+	pRoleID := ctx.Query("role_id")
+	RoleID, err := strconv.Atoi(pRoleID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Проверьте корректность RoleId",
+			"error": err.Error()})
+		return
+	}
+
+	UserRole, err := s.store.UserRole().ByRoleID(uint(RoleID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения списка ролей пользователей по RoleId",
+
+			"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, UserRole)
+}
+
+func (s *server) GetUserRoleById(ctx *gin.Context) {
+	pID := ctx.Query("id")
+	ID, err := strconv.Atoi(pID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Проверьте корректность ID",
+			"error": err.Error()})
+		return
+	}
+
+	userRole, err := s.store.UserRole().ByID(uint(ID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения роли пользователя по ID",
+
+			"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, userRole)
+}
+
+func (s *server) UpdateUserRole(ctx *gin.Context) {
+	pID := ctx.Query("id")
+	ID, err := strconv.Atoi(pID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Проверьте корректность ID",
+			"error": err.Error()})
+		return
+	}
+
+	var userRole model.UserRole
+	err = ctx.ShouldBindJSON(&userRole)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Проверьте корректность передаваемых данных",
+
+			"error": err.Error()})
+		return
+	}
+
+	userRole.ID = uint(ID)
+
+	userRole, err = s.store.UserRole().Update(userRole)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка обновления информации о роли пользователя",
+
+			"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Информация о роли пользователя успешно обновлена",
+		"user_role": userRole})
+}
+
+func (s *server) DeleteUserRole(ctx *gin.Context) {
+	pID := ctx.Query("id")
+	ID, err := strconv.Atoi(pID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Проверьте корректность ID",
+			"error": err.Error()})
+		return
+	}
+
+	err = s.store.UserRole().Delete(uint(ID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка удаления роли пользователя",
+
+			"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Роль пользователя успешно удалена"})
+}
+
+// UserTeams ...
+
+func (s *server) AddUserTeams(ctx *gin.Context) {
+	var userTeams []model.UserTeam
+
+	err := ctx.ShouldBindJSON(&userTeams)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Ошибка чтения данных",
+			"error": err.Error()})
+		return
+	}
+
+	var addedUP []model.UserTeam
+	for _, req := range userTeams {
+		userTeams, err := s.store.UserTeam().Add(req)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка добавления команды пользователя",
+
+				"error": err.Error()})
+			continue
+		} else {
+			addedUP = append(addedUP, userTeams)
+		}
+	}
+	ctx.JSON(http.StatusCreated, addedUP)
+}
+
+func (s *server) GetUserTeams(ctx *gin.Context) {
+	up, err := s.store.UserTeam().All()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения списка ролей пользователей",
+
+			"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, up)
+}
+
+func (s *server) GetUserTeamsByUserId(ctx *gin.Context) {
+	pUserID := ctx.Query("user_id")
+	UserID, err := strconv.Atoi(pUserID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Проверьте корректность UserId",
+			"error": err.Error()})
+		return
+	}
+
+	UserTeam, err := s.store.UserTeam().ByUserID(uint(UserID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения списка команд ролей по UserId",
+
+			"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, UserTeam)
+}
+
+func (s *server) GetUserTeamsByTeamId(ctx *gin.Context) {
+	pTeamID := ctx.Query("team_id")
+	TeamID, err := strconv.Atoi(pTeamID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Проверьте корректность TeamId",
+			"error": err.Error()})
+		return
+	}
+
+	UserRole, err := s.store.UserTeam().ByTeamID(uint(TeamID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения списка команд пользователей по TeamId",
+
+			"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, UserRole)
+}
+
+func (s *server) GetUserTeamById(ctx *gin.Context) {
+	pID := ctx.Query("id")
+	ID, err := strconv.Atoi(pID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Проверьте корректность ID",
+			"error": err.Error()})
+		return
+	}
+
+	userRole, err := s.store.UserTeam().ByID(uint(ID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения команды пользователя по ID",
+
+			"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, userRole)
+}
+
+func (s *server) UpdateUserTeam(ctx *gin.Context) {
+	pID := ctx.Query("id")
+	ID, err := strconv.Atoi(pID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Проверьте корректность ID",
+			"error": err.Error()})
+		return
+	}
+
+	var userTeam model.UserTeam
+	err = ctx.ShouldBindJSON(&userTeam)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Проверьте корректность передаваемых данных",
+
+			"error": err.Error()})
+		return
+	}
+
+	userTeam.ID = uint(ID)
+
+	userTeam, err = s.store.UserTeam().Update(userTeam)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка обновления информации о команде пользователя",
+
+			"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Информация о команде пользователя успешно обновлена",
+
+		"user_role": userTeam})
+}
+
+func (s *server) DeleteUserTeam(ctx *gin.Context) {
+	pID := ctx.Query("id")
+	ID, err := strconv.Atoi(pID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Проверьте корректность ID",
+			"error": err.Error()})
+		return
+	}
+
+	err = s.store.UserTeam().Delete(uint(ID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка удаления команды пользователя",
+
+			"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Команда пользователя успешно удалена"})
 }
