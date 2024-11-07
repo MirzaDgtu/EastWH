@@ -1,12 +1,14 @@
 package apiserver
 
 import (
+	"context"
 	"eastwh/internal/model"
 	"eastwh/internal/store"
 	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 	"unicode/utf8"
 
@@ -494,6 +496,7 @@ func (s *server) GetUserProfile(ctx *gin.Context) {
 }
 
 // Employee...
+/*
 func (s *server) AddEmployee(ctx *gin.Context) {
 	var employees []model.Employee
 
@@ -514,6 +517,92 @@ func (s *server) AddEmployee(ctx *gin.Context) {
 		} else {
 			addedEmployees = append(addedEmployees, employee)
 		}
+	}
+
+	ctx.JSON(http.StatusCreated, addedEmployees)
+}
+*/
+
+// Employee handler with goroutines
+func (s *server) AddEmployee(ctx *gin.Context) {
+	var employees []model.Employee
+
+	err := ctx.ShouldBindJSON(&employees)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"message": "Ошибка чтения данных",
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	// Создаем каналы для результатов и ошибок
+	results := make(chan model.Employee, len(employees))
+	errors := make(chan error, len(employees))
+
+	// WaitGroup для отслеживания завершения всех горутин
+	var wg sync.WaitGroup
+
+	// Запускаем горутину для каждого сотрудника
+	for _, emp := range employees {
+		wg.Add(1)
+		go func(emp model.Employee) {
+			defer wg.Done()
+			employee, err := s.store.Employee().Add(emp)
+			if err != nil {
+				errors <- err
+				return
+			}
+			results <- employee
+		}(emp)
+	}
+
+	// Горутина для закрытия каналов после завершения всех операций
+	go func() {
+		wg.Wait()
+		close(results)
+		close(errors)
+	}()
+
+	// Собираем результаты и ошибки
+	var addedEmployees []model.Employee
+	var errorMessages []string
+
+	// Читаем из каналов, пока они не закрыты
+	for {
+		select {
+		case employee, ok := <-results:
+			if !ok {
+				results = nil
+				continue
+			}
+			addedEmployees = append(addedEmployees, employee)
+
+		case err, ok := <-errors:
+			if !ok {
+				errors = nil
+				continue
+			}
+			errorMessages = append(errorMessages, err.Error())
+
+		// Если оба канала закрыты, завершаем цикл
+		default:
+			if results == nil && errors == nil {
+				goto Done
+			}
+		}
+	}
+
+Done:
+	// Формируем ответ
+	response := gin.H{
+		"added_employees": addedEmployees,
+	}
+
+	if len(errorMessages) > 0 {
+		response["errors"] = errorMessages
+		ctx.JSON(http.StatusMultiStatus, response)
+		return
 	}
 
 	ctx.JSON(http.StatusCreated, addedEmployees)
@@ -596,25 +685,157 @@ func (s *server) DeleteEmployee(ctx *gin.Context) {
 }
 
 // Order...
-func (s *server) AddOrders(ctx *gin.Context) {
-	var order model.Order
 
-	err := ctx.ShouldBindJSON(&order)
+/*
+func (s *server) AddOrders(ctx *gin.Context) {
+	var orders []model.Order
+
+	err := ctx.ShouldBindJSON(&orders)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Ошибка проверки данных заказа",
 			"error": err.Error()})
 		return
 	}
 
-	order, err = s.store.Order().Add(order)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка создания заказа",
-			"error": err.Error()})
-		return
+	var addedOrders []model.Order
+	for _, order := range orders {
+		order, err = s.store.Order().Add(order)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка создания заказа",
+				"error": err.Error()})
+			continue
+		} else {
+			addedOrders = append(addedOrders, order)
+		}
 	}
 
 	ctx.JSON(http.StatusCreated, gin.H{"message": "Заказ успешно создан",
-		"order": order})
+		"order": addedOrders})
+}
+*/
+
+func (s *server) AddOrders(ctx *gin.Context) {
+	var orders []model.Order
+
+	err := ctx.ShouldBindJSON(&orders)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"message": "Ошибка проверки данных заказа",
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	// Создаем контекст с таймаутом
+	ctxTimeout, cancel := context.WithTimeout(ctx.Request.Context(), 30*time.Second)
+	defer cancel()
+
+	// Каналы для результатов и ошибок
+	results := make(chan model.Order, len(orders))
+	errors := make(chan struct {
+		order model.Order
+		err   error
+	}, len(orders))
+
+	// WaitGroup для отслеживания завершения всех горутин
+	var wg sync.WaitGroup
+
+	// Запускаем горутину для каждого заказа
+	for _, order := range orders {
+		wg.Add(1)
+		go func(order model.Order) {
+			defer wg.Done()
+
+			// Проверяем контекст перед обработкой
+			select {
+			case <-ctxTimeout.Done():
+				errors <- struct {
+					order model.Order
+					err   error
+				}{order, fmt.Errorf("timeout processing order")}
+				return
+			default:
+			}
+
+			createdOrder, err := s.store.Order().Add(order)
+			if err != nil {
+				errors <- struct {
+					order model.Order
+					err   error
+				}{order, err}
+				return
+			}
+			results <- createdOrder
+		}(order)
+	}
+
+	// Горутина для закрытия каналов после завершения всех операций
+	go func() {
+		wg.Wait()
+		close(results)
+		close(errors)
+	}()
+
+	// Собираем результаты
+	var addedOrders []model.Order
+	var failedOrders []struct {
+		Order   model.Order `json:"order"`
+		Message string      `json:"error"`
+	}
+
+	// Читаем из каналов до их закрытия
+	for {
+		select {
+		case <-ctxTimeout.Done():
+			ctx.JSON(http.StatusGatewayTimeout, gin.H{
+				"message":       "Превышено время ожидания при создании заказов",
+				"added_orders":  addedOrders,
+				"failed_orders": failedOrders,
+				"error":         "timeout",
+			})
+			return
+
+		case order, ok := <-results:
+			if !ok {
+				results = nil
+				continue
+			}
+			addedOrders = append(addedOrders, order)
+
+		case errorData, ok := <-errors:
+			if !ok {
+				errors = nil
+				continue
+			}
+			failedOrders = append(failedOrders, struct {
+				Order   model.Order `json:"order"`
+				Message string      `json:"error"`
+			}{
+				Order:   errorData.order,
+				Message: errorData.err.Error(),
+			})
+
+		default:
+			if results == nil && errors == nil {
+				goto Done
+			}
+		}
+	}
+
+Done:
+	// Формируем итоговый ответ
+	response := gin.H{
+		"message":      "Обработка заказов завершена",
+		"added_orders": addedOrders,
+	}
+
+	if len(failedOrders) > 0 {
+		response["failed_orders"] = failedOrders
+		ctx.JSON(http.StatusMultiStatus, response)
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, response)
 }
 
 func (s *server) GetOrders(ctx *gin.Context) {
