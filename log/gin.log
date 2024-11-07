@@ -38,8 +38,9 @@
 [GIN-debug] POST   /api/v1/employees         --> eastwh/internal/apiserver.(*server).AddEmployee-fm (5 handlers)
 [GIN-debug] GET    /api/v1/employees         --> eastwh/internal/apiserver.(*server).GetEmployees-fm (5 handlers)
 [GIN-debug] GET    /api/v1/employee/         --> eastwh/internal/apiserver.(*server).GetEmployeeByID-fm (5 handlers)
-[GIN-debug] PUT    /api/v1/employee/update/  --> eastwh/internal/apiserver.(*server).UpdateEmployee-fm (5 handlers)
-[GIN-debug] DELETE /api/v1/employee/delete/  --> eastwh/internal/apiserver.(*server).DeleteEmployee-fm (5 handlers)
+[GIN-debug] GET    /api/v1/employee/code/    --> eastwh/internal/apiserver.(*server).GetEmployeeByCode-fm (5 handlers)
+[GIN-debug] PUT    /api/v1/employee/         --> eastwh/internal/apiserver.(*server).UpdateEmployee-fm (5 handlers)
+[GIN-debug] DELETE /api/v1/employee/         --> eastwh/internal/apiserver.(*server).DeleteEmployee-fm (5 handlers)
 [GIN-debug] GET    /api/v1/order/            --> eastwh/internal/apiserver.(*server).GetOrderByID-fm (5 handlers)
 [GIN-debug] GET    /api/v1/order/uid/        --> eastwh/internal/apiserver.(*server).GetOrderByUID-fm (5 handlers)
 [GIN-debug] PUT    /api/v1/order/update/collector --> eastwh/internal/apiserver.(*server).UpdateOrderCollector-fm (5 handlers)
@@ -65,4 +66,4 @@
 [GIN-debug] [WARNING] You trusted all proxies, this is NOT safe. We recommend you to set a value.
 Please check https://pkg.go.dev/github.com/gin-gonic/gin#readme-don-t-trust-all-proxies for details.
 [GIN-debug] Listening and serving HTTP on :8091
-[GIN] 2024/11/07 - 15:05:43 | 201 |    1.6228537s |             ::1 | POST     "/api/v1/orders"
+[GIN] 2024/11/07 - 23:55:56 | 201 |     843.969ms |             ::1 | POST     "/api/v1/orders"

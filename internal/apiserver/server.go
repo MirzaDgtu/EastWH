@@ -137,8 +137,9 @@ func (s *server) configureRouter() {
 		employeeGroup := apiGroup.Group("/employee")
 		{
 			employeeGroup.GET("/", s.GetEmployeeByID)
-			employeeGroup.PUT("/update/", s.UpdateEmployee)
-			employeeGroup.DELETE("/delete/", s.DeleteEmployee)
+			employeeGroup.GET("/code/", s.GetEmployeeByCode)
+			employeeGroup.PUT("/", s.UpdateEmployee)
+			employeeGroup.DELETE("/", s.DeleteEmployee)
 		}
 
 		orderGroup := apiGroup.Group("/order")
@@ -637,6 +638,18 @@ func (s *server) GetEmployeeByID(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, employee)
 }
 
+func (s *server) GetEmployeeByCode(ctx *gin.Context) {
+	pCode := ctx.Query("code")
+
+	employee, err := s.store.Employee().ByCode(pCode)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения сотрудника по Code",
+			"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, employee)
+}
+
 func (s *server) UpdateEmployee(ctx *gin.Context) {
 	pID := ctx.Query("id")
 	ID, err := strconv.Atoi(pID)
@@ -903,6 +916,7 @@ func (s *server) GetOrdersByUserId(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, order)
 }
 
+/*
 func (s *server) UpdateOrderCollector(ctx *gin.Context) {
 	type request struct {
 		OrderUID    uint `json:"order_uid"`
@@ -924,6 +938,73 @@ func (s *server) UpdateOrderCollector(ctx *gin.Context) {
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка обновления данных заказа",
 			"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Данные заказа успешно обновлены"})
+}
+*/
+
+func (s *server) UpdateOrderCollector(ctx *gin.Context) {
+	type request struct {
+		OrderUID    uint `json:"order_uid"`
+		KeeperID    uint `json:"keeper_id"`
+		CollectorID uint `json:"collector_id"`
+	}
+
+	var reqs []request
+
+	err := ctx.ShouldBindJSON(&reqs)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Проверьте корректность передаваемых данных",
+			"error": err.Error(),
+		})
+		return
+	}
+
+	errors := make(chan error, len(reqs))
+
+	var wg sync.WaitGroup
+
+	for _, req := range reqs {
+		wg.Add(1)
+		go func(req request) {
+			err := s.store.Order().SetCollector(req.OrderUID, req.KeeperID, req.CollectorID)
+			if err != nil {
+				errors <- err
+			}
+		}(req)
+	}
+
+	go func() {
+		wg.Wait()
+		close(errors)
+	}()
+
+	var errorMessages []string
+
+	for {
+		select {
+		case err, ok := <-errors:
+			if !ok {
+				errors = nil
+				continue
+			}
+			errorMessages = append(errorMessages, err.Error())
+
+		default:
+			if errors == nil {
+				goto Done
+			}
+		}
+	}
+
+Done:
+	response := gin.H{"errors": errorMessages}
+
+	if len(errorMessages) > 0 {
+		response["errors"] = errorMessages
+		ctx.JSON(http.StatusMultiStatus, response)
 		return
 	}
 
@@ -1386,7 +1467,6 @@ func (s *server) UpdateRole(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "Данные роли успешно обновлены",
 		"role": role})
-
 }
 
 func (s *server) DeleteRole(ctx *gin.Context) {
