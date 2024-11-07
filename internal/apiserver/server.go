@@ -100,15 +100,28 @@ func (s *server) configureRouter() {
 		{
 			orderGroup.GET("/", s.GetOrderByID)
 			orderGroup.GET("/uid/", s.GetOrderByUID)
-			orderGroup.PUT("/update/collector", s.UpdateCollector)
+			orderGroup.PUT("/update/collector", s.UpdateOrderCollector)
 		}
 
 		ordersGroup := apiGroup.Group("/orders")
 		{
 			ordersGroup.GET("/user/", s.GetOrdersByUserId)
-			ordersGroup.GET("/daterange", s.GerOrderByDateRange)
+			ordersGroup.GET("/daterange/", s.GerOrderByDateRange)
 			ordersGroup.POST("", s.AddOrders)
 			ordersGroup.GET("", s.GetOrders)
+		}
+
+		teamGroup := apiGroup.Group("/team")
+		{
+			teamGroup.GET("/", s.GetTeamByID)
+			teamGroup.PUT("/update/", s.UpdateTeam)
+			teamGroup.DELETE("/delete/", s.DeleteTeam)
+		}
+
+		teamsGroup := apiGroup.Group("/teams")
+		{
+			teamsGroup.POST("", s.AddTeams)
+			teamsGroup.GET("", s.GetTeams)
 		}
 
 		projectGroup := apiGroup.Group("/project")
@@ -527,6 +540,38 @@ func (s *server) DeleteEmployee(ctx *gin.Context) {
 }
 
 // Order...
+func (s *server) AddOrders(ctx *gin.Context) {
+	var order model.Order
+
+	err := ctx.ShouldBindJSON(&order)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Ошибка проверки данных заказа",
+			"error": err.Error()})
+		return
+	}
+
+	order, err = s.store.Order().Add(order)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка создания заказа",
+			"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, gin.H{"message": "Заказ успешно создан",
+		"order": order})
+}
+
+func (s *server) GetOrders(ctx *gin.Context) {
+	orders, err := s.store.Order().All()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения списка заказов",
+			"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, orders)
+}
+
 func (s *server) GetOrderByID(ctx *gin.Context) {
 	pID := ctx.Query("id")
 	ID, err := strconv.Atoi(pID)
@@ -581,7 +626,7 @@ func (s *server) GetOrdersByUserId(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, order)
 }
 
-func (s *server) UpdateCollector(ctx *gin.Context) {
+func (s *server) UpdateOrderCollector(ctx *gin.Context) {
 	type request struct {
 		OrderUID    uint `json:"order_uid"`
 		KeeperID    uint `json:"keeper_id"`
@@ -631,36 +676,109 @@ func (s *server) GerOrderByDateRange(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, findedOrders)
 }
 
-func (s *server) AddOrders(ctx *gin.Context) {
-	var order model.Order
+// Teams
+func (s *server) AddTeams(ctx *gin.Context) {
+	var teams []model.Team
 
-	err := ctx.ShouldBindJSON(&order)
+	err := ctx.ShouldBindJSON(&teams)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Ошибка создания заказа",
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Ошибка проверки данных команды.",
 			"error": err.Error()})
 		return
 	}
 
-	order, err = s.store.Order().Add(order)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка создания заказа",
-			"error": err.Error()})
-		return
+	var addedTeams []model.Team
+	for _, team := range teams {
+		team, err = s.store.Team().Add(team)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка добавления команды " + team.Name,
+				"error": err.Error()})
+			continue
+		} else {
+			ctx.JSON(http.StatusCreated, gin.H{"message": "Команда - " + team.Name + " успешно добавлена"})
+			addedTeams = append(addedTeams, team)
+		}
 	}
 
-	ctx.JSON(http.StatusCreated, gin.H{"message": "Заказ успешно создан",
-		"order": order})
+	ctx.JSON(http.StatusCreated, addedTeams)
 }
 
-func (s *server) GetOrders(ctx *gin.Context) {
-	orders, err := s.store.Order().All()
+func (s *server) GetTeams(ctx *gin.Context) {
+	teams, err := s.store.Team().All()
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения списка заказов",
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения списка команд",
 			"error": err.Error()})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, orders)
+	ctx.JSON(http.StatusOK, teams)
+}
+
+func (s *server) GetTeamByID(ctx *gin.Context) {
+	pID := ctx.Query("id")
+	ID, err := strconv.Atoi(pID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Проверьте корректность ID",
+			"error": err.Error()})
+		return
+	}
+
+	team, err := s.store.Team().ByID(uint(ID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения заказа по ID",
+			"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, team)
+}
+
+func (s *server) UpdateTeam(ctx *gin.Context) {
+	pID := ctx.Query("id")
+	ID, err := strconv.Atoi(pID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Проверьте корректность ID",
+			"error": err.Error()})
+		return
+	}
+
+	var team model.Team
+	err = ctx.ShouldBindJSON(&team)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Проверьте корректность передаваемых данных",
+			"error": err.Error()})
+		return
+	}
+
+	team.ID = uint(ID)
+
+	team, err = s.store.Team().Update(team)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка обновления информации о команде",
+			"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Информация о команде успешно обновлена",
+		"team": team})
+}
+
+func (s *server) DeleteTeam(ctx *gin.Context) {
+	pID := ctx.Query("id")
+	ID, err := strconv.Atoi(pID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Проверьте корректность ID",
+			"error": err.Error()})
+		return
+	}
+
+	err = s.store.Team().Delete(uint(ID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка удаления команды",
+			"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Команда успешно удалена"})
 }
 
 // Project
