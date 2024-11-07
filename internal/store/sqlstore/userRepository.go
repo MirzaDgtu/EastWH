@@ -62,6 +62,10 @@ func (r *UserRepository) Logout(id uint) error {
 		"token": ""}).Error
 }
 
+func (r *UserRepository) UpdateToken(id uint, token string) error {
+	return r.store.db.Model(&model.User{}).Where("id=?", id).Update("token", token).Error
+}
+
 func (r *UserRepository) Restore(email string) (password string, err error) {
 	pass, err := generateTemporaryPassword()
 	if err != nil {

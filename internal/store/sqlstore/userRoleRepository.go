@@ -11,11 +11,7 @@ func (r *UserRoleRepository) Add(u model.UserRole) (model.UserRole, error) {
 }
 
 func (r *UserRoleRepository) Update(userrole model.UserRole) (model.UserRole, error) {
-	return userrole, r.store.db.Save(&userrole).Error
-}
-
-func (r *UserRepository) UpdateToken(id uint, token string) error {
-	return r.store.db.Model(&model.User{}).Where("id=?", id).Update("token", token).Error
+	return userrole, r.store.db.Model(&userrole).Update("user_id", userrole.UserID).Update("role_id", userrole.RoleID).Error
 }
 
 func (r *UserRoleRepository) Delete(id uint) error {

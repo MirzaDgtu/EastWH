@@ -10,6 +10,13 @@
 [GIN-debug] POST   /api/v1/user/update/password/ --> eastwh/internal/apiserver.(*server).UpdatePassword-fm (5 handlers)
 [GIN-debug] POST   /api/v1/user/block/       --> eastwh/internal/apiserver.(*server).BlockedUser-fm (5 handlers)
 [GIN-debug] GET    /api/v1/user/profile/     --> eastwh/internal/apiserver.(*server).GetUserProfile-fm (5 handlers)
+[GIN-debug] POST   /api/v1/user/projects     --> eastwh/internal/apiserver.(*server).AddUserProjects-fm (5 handlers)
+[GIN-debug] GET    /api/v1/user/projects     --> eastwh/internal/apiserver.(*server).GetUserProjects-fm (5 handlers)
+[GIN-debug] GET    /api/v1/user/projects/user/ --> eastwh/internal/apiserver.(*server).GetUserProjectsByUserId-fm (5 handlers)
+[GIN-debug] GET    /api/v1/user/projects/project/ --> eastwh/internal/apiserver.(*server).GetUserProjectsByProjectId-fm (5 handlers)
+[GIN-debug] GET    /api/v1/user/project/     --> eastwh/internal/apiserver.(*server).GetUserProjectById-fm (5 handlers)
+[GIN-debug] PUT    /api/v1/user/project/     --> eastwh/internal/apiserver.(*server).UpdateUserProject-fm (5 handlers)
+[GIN-debug] DELETE /api/v1/user/project/     --> eastwh/internal/apiserver.(*server).DeleteUserProject-fm (5 handlers)
 [GIN-debug] POST   /api/v1/users             --> eastwh/internal/apiserver.(*server).AddUser-fm (5 handlers)
 [GIN-debug] POST   /api/v1/users/login       --> eastwh/internal/apiserver.(*server).Login-fm (5 handlers)
 [GIN-debug] GET    /api/v1/users             --> eastwh/internal/apiserver.(*server).GetUsers-fm (5 handlers)
@@ -31,78 +38,25 @@
 [GIN-debug] DELETE /api/v1/team/delete/      --> eastwh/internal/apiserver.(*server).DeleteTeam-fm (5 handlers)
 [GIN-debug] POST   /api/v1/teams             --> eastwh/internal/apiserver.(*server).AddTeams-fm (5 handlers)
 [GIN-debug] GET    /api/v1/teams             --> eastwh/internal/apiserver.(*server).GetTeams-fm (5 handlers)
+[GIN-debug] GET    /api/v1/project/id/       --> eastwh/internal/apiserver.(*server).GetProjectById-fm (5 handlers)
+[GIN-debug] DELETE /api/v1/project/delete/   --> eastwh/internal/apiserver.(*server).DeleteProject-fm (5 handlers)
+[GIN-debug] PUT    /api/v1/project/update/   --> eastwh/internal/apiserver.(*server).UpdateProject-fm (5 handlers)
+[GIN-debug] POST   /api/v1/projects          --> eastwh/internal/apiserver.(*server).AddProject-fm (5 handlers)
+[GIN-debug] GET    /api/v1/projects          --> eastwh/internal/apiserver.(*server).GetProjects-fm (5 handlers)
+[GIN-debug] POST   /api/v1/roles             --> eastwh/internal/apiserver.(*server).AddRoles-fm (5 handlers)
+[GIN-debug] GET    /api/v1/roles             --> eastwh/internal/apiserver.(*server).GetRoles-fm (5 handlers)
+[GIN-debug] GET    /api/v1/role/             --> eastwh/internal/apiserver.(*server).GetRoleByID-fm (5 handlers)
+[GIN-debug] PUT    /api/v1/role/             --> eastwh/internal/apiserver.(*server).UpdateRole-fm (5 handlers)
+[GIN-debug] DELETE /api/v1/role/             --> eastwh/internal/apiserver.(*server).DeleteRole-fm (5 handlers)
 [GIN-debug] [WARNING] You trusted all proxies, this is NOT safe. We recommend you to set a value.
 Please check https://pkg.go.dev/github.com/gin-gonic/gin#readme-don-t-trust-all-proxies for details.
 [GIN-debug] Listening and serving HTTP on :8091
-[GIN] 2024/11/07 - 06:35:23 | 200 |      7.6164ms |   172.16.55.175 | GET      "/api/v1/employee/?id=1"
-[GIN] 2024/11/07 - 06:45:32 | 200 |    226.7386ms |     172.16.4.23 | POST     "/api/v1/users/login"
-[GIN] 2024/11/07 - 06:45:34 | 200 |     11.6229ms |     172.16.4.23 | GET      "/api/v1/employees"
-[GIN] 2024/11/07 - 06:47:59 | 200 |    242.9685ms |     172.16.4.23 | POST     "/api/v1/users/login"
-[GIN] 2024/11/07 - 06:48:01 | 200 |       9.213ms |     172.16.4.23 | GET      "/api/v1/employees"
-[GIN] 2024/11/07 - 07:14:04 | 200 |    268.9306ms |     172.16.4.23 | POST     "/api/v1/users/login"
-[GIN] 2024/11/07 - 07:14:06 | 200 |     23.3794ms |     172.16.4.23 | GET      "/api/v1/employees"
-[GIN] 2024/11/07 - 07:14:47 | 200 |    302.9209ms |     172.16.4.23 | POST     "/api/v1/users/login"
-[GIN] 2024/11/07 - 07:14:49 | 200 |      5.2042ms |     172.16.4.23 | GET      "/api/v1/employees"
-[GIN] 2024/11/07 - 07:16:03 | 404 |      1.2731ms |   172.16.55.175 | PUT      "/api/v1/employee/?id=1"
-[GIN] 2024/11/07 - 07:22:27 | 404 |       1.392ms |   172.16.55.175 | PUT      "/api/v1/employee/?id=1"
-[GIN] 2024/11/07 - 07:22:53 | 404 |       690.4µs |   172.16.55.175 | PUT      "/api/v1/employee/?id=1"
-[GIN] 2024/11/07 - 07:23:09 | 200 |    107.2324ms |   172.16.55.175 | PUT      "/api/v1/employee/update/?id=1"
-[GIN] 2024/11/07 - 07:52:31 | 200 |    251.3195ms |     172.16.4.23 | POST     "/api/v1/users/login"
-[GIN] 2024/11/07 - 07:52:34 | 200 |     18.4208ms |     172.16.4.23 | GET      "/api/v1/employees"
-[GIN] 2024/11/07 - 07:52:48 | 200 |     76.1585ms |     172.16.4.23 | PUT      "/api/v1/employee/update/?id=1"
-[GIN] 2024/11/07 - 07:53:00 | 200 |     21.3449ms |     172.16.4.23 | GET      "/api/v1/employees"
-[GIN] 2024/11/07 - 07:53:17 | 200 |      67.218ms |     172.16.4.23 | PUT      "/api/v1/employee/update/?id=2"
-[GIN] 2024/11/07 - 07:53:22 | 200 |     19.3312ms |     172.16.4.23 | GET      "/api/v1/employees"
-[GIN] 2024/11/07 - 07:53:38 | 200 |     22.5142ms |     172.16.4.23 | GET      "/api/v1/employees"
-[GIN] 2024/11/07 - 07:54:24 | 200 |    238.4038ms |     172.16.4.23 | POST     "/api/v1/users/login"
-[GIN] 2024/11/07 - 07:54:28 | 200 |      4.7931ms |     172.16.4.23 | GET      "/api/v1/employees"
-[GIN] 2024/11/07 - 07:54:44 | 200 |     19.4496ms |     172.16.4.23 | GET      "/api/v1/employees"
-[GIN] 2024/11/07 - 07:54:51 | 200 |      9.9195ms |     172.16.4.23 | GET      "/api/v1/employees"
-[GIN] 2024/11/07 - 07:55:00 | 200 |     71.5744ms |     172.16.4.23 | PUT      "/api/v1/employee/update/?id=7"
-[GIN] 2024/11/07 - 07:55:03 | 200 |     10.9933ms |     172.16.4.23 | GET      "/api/v1/employees"
-[GIN] 2024/11/07 - 07:55:59 | 200 |     18.4959ms |     172.16.4.23 | GET      "/api/v1/employees"
-[GIN] 2024/11/07 - 07:59:31 | 200 |    238.0419ms |     172.16.4.23 | POST     "/api/v1/users/login"
-[GIN] 2024/11/07 - 07:59:33 | 200 |      8.6135ms |     172.16.4.23 | GET      "/api/v1/employees"
-[GIN] 2024/11/07 - 07:59:50 | 200 |     19.5451ms |     172.16.4.23 | GET      "/api/v1/employees"
-[GIN] 2024/11/07 - 07:59:58 | 200 |     16.7516ms |     172.16.4.23 | GET      "/api/v1/employees"
-[GIN] 2024/11/07 - 08:00:11 | 200 |        6.66ms |     172.16.4.23 | GET      "/api/v1/employees"
-[GIN] 2024/11/07 - 08:00:14 | 200 |     10.1885ms |     172.16.4.23 | GET      "/api/v1/employees"
-[GIN] 2024/11/07 - 08:04:43 | 200 |    253.8501ms |     172.16.4.23 | POST     "/api/v1/users/login"
-[GIN] 2024/11/07 - 08:04:46 | 200 |     18.5368ms |     172.16.4.23 | GET      "/api/v1/employees"
-[GIN] 2024/11/07 - 08:05:06 | 200 |     75.2358ms |     172.16.4.23 | PUT      "/api/v1/employee/update/?id=5"
-[GIN] 2024/11/07 - 08:05:08 | 200 |     12.0097ms |     172.16.4.23 | GET      "/api/v1/employees"
-[GIN] 2024/11/07 - 08:05:11 | 200 |     19.3581ms |     172.16.4.23 | GET      "/api/v1/employees"
-[GIN] 2024/11/07 - 08:05:53 | 200 |    269.7511ms |     172.16.4.23 | POST     "/api/v1/users/login"
-[GIN] 2024/11/07 - 08:05:56 | 200 |       8.562ms |     172.16.4.23 | GET      "/api/v1/employees"
-[GIN] 2024/11/07 - 08:06:05 | 200 |     12.8446ms |     172.16.4.23 | GET      "/api/v1/employees"
-[GIN] 2024/11/07 - 08:07:24 | 200 |    242.4269ms |     172.16.4.23 | POST     "/api/v1/users/login"
-[GIN] 2024/11/07 - 08:07:26 | 200 |      8.5037ms |     172.16.4.23 | GET      "/api/v1/employees"
-[GIN] 2024/11/07 - 08:07:36 | 200 |     72.8279ms |     172.16.4.23 | PUT      "/api/v1/employee/update/?id=6"
-[GIN] 2024/11/07 - 08:07:36 | 200 |       8.686ms |     172.16.4.23 | GET      "/api/v1/employees"
-[GIN] 2024/11/07 - 08:07:40 | 200 |      5.3392ms |     172.16.4.23 | GET      "/api/v1/employees"
-[GIN] 2024/11/07 - 08:08:24 | 200 |     68.7902ms |     172.16.4.23 | PUT      "/api/v1/employee/update/?id=9"
-[GIN] 2024/11/07 - 08:08:24 | 200 |      7.7531ms |     172.16.4.23 | GET      "/api/v1/employees"
-[GIN] 2024/11/07 - 08:08:31 | 200 |     23.8191ms |     172.16.4.23 | GET      "/api/v1/employees"
-[GIN] 2024/11/07 - 08:15:34 | 200 |    234.9424ms |     172.16.4.23 | POST     "/api/v1/users/login"
-[GIN] 2024/11/07 - 08:15:49 | 200 |      9.8987ms |     172.16.4.23 | GET      "/api/v1/employees"
-[GIN] 2024/11/07 - 08:16:45 | 200 |     67.4298ms |     172.16.4.23 | PUT      "/api/v1/employee/update/?id=12"
-[GIN] 2024/11/07 - 08:16:45 | 200 |      8.6335ms |     172.16.4.23 | GET      "/api/v1/employees"
-[GIN] 2024/11/07 - 08:17:03 | 200 |     20.6757ms |     172.16.4.23 | GET      "/api/v1/employees"
-[GIN] 2024/11/07 - 08:28:56 | 404 |       853.8µs |   172.16.55.175 | GET      "/api/v1/projects"
-[GIN] 2024/11/07 - 08:29:11 | 404 |       523.2µs |   172.16.55.175 | GET      "/api/v1/projects"
-[GIN] 2024/11/07 - 08:29:28 | 404 |            0s |   172.16.55.175 | GET      "/api/v1/projects"
-[GIN] 2024/11/07 - 08:29:36 | 400 |    144.0325ms |   172.16.55.175 | POST     "/api/v1/users/login"
-[GIN] 2024/11/07 - 08:29:43 | 404 |     12.4456ms |   172.16.55.175 | GET      "/api/v1/projects"
-[GIN] 2024/11/07 - 08:38:23 | 404 |      1.1386ms |   172.16.55.175 | GET      "/api/v1/projects"
-[GIN] 2024/11/07 - 08:38:47 | 200 |      65.482ms |   172.16.55.175 | PUT      "/api/v1/employee/update/?id=1"
-[GIN] 2024/11/07 - 08:38:58 | 202 |      68.524ms |   172.16.55.175 | POST     "/api/v1/user/logout/?id=1"
-[GIN] 2024/11/07 - 08:39:04 | 404 |       462.2µs |   172.16.55.175 | GET      "/api/v1/projects"
-[GIN] 2024/11/07 - 08:39:50 | 404 |       705.8µs |   172.16.55.175 | GET      "/api/v1/projects"
-[GIN] 2024/11/07 - 08:42:59 | 404 |       1.094ms |   172.16.55.175 | GET      "/api/v1/projects"
-[GIN] 2024/11/07 - 08:43:07 | 404 |       556.6µs |   172.16.55.175 | GET      "/api/v1/project"
-[GIN] 2024/11/07 - 08:43:10 | 404 |       130.4µs |   172.16.55.175 | GET      "/api/v1/projects"
-[GIN] 2024/11/07 - 08:43:55 | 404 |      1.1515ms |   172.16.55.175 | GET      "/api/v1/projects"
-[GIN] 2024/11/07 - 08:44:29 | 404 |       516.7µs |   172.16.55.175 | GET      "/api/v1/projects"
-[GIN] 2024/11/07 - 08:44:46 | 404 |       513.9µs |   172.16.55.175 | GET      "/api/v1/projects"
-[GIN] 2024/11/07 - 08:45:08 | 404 |      1.1059ms |   172.16.55.175 | GET      "/api/v1/projects"
-[GIN] 2024/11/07 - 08:45:35 | 200 |      3.4242ms |   172.16.55.175 | GET      "/api/v1/teams"
+[GIN] 2024/11/07 - 10:16:00 | 200 |      4.5204ms |   172.16.55.175 | GET      "/api/v1/teams"
+[GIN] 2024/11/07 - 10:16:10 | 200 |      5.8819ms |   172.16.55.175 | GET      "/api/v1/projects"
+[GIN] 2024/11/07 - 10:38:58 | 200 |     16.8899ms |             ::1 | PUT      "/api/v1/role/?id=4"
+[GIN] 2024/11/07 - 10:39:25 | 200 |     44.4795ms |             ::1 | DELETE   "/api/v1/role/?id=4"
+[GIN-debug] [WARNING] Headers were already written. Wanted to override status code 500 with 201
+[GIN] 2024/11/07 - 10:39:31 | 500 |     50.2838ms |             ::1 | POST     "/api/v1/roles"
+[GIN-debug] [WARNING] Headers were already written. Wanted to override status code 500 with 201
+[GIN-debug] [WARNING] Headers were already written. Wanted to override status code 500 with 201
+[GIN] 2024/11/07 - 10:40:09 | 500 |     37.9623ms |             ::1 | POST     "/api/v1/roles"
