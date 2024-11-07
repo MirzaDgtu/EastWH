@@ -9,7 +9,7 @@ type User struct {
 	FirstName string    `gorm:"column:first_name" json:"first_name"`
 	Name      string    `gorm:"column:"name" json:"name" validate:"required"`
 	LastName  string    `gorm:"column:last_name" json:"last_name" validate:"required"`
-	Email     string    `gorm:"column:email" json:"email"`
+	Email     string    `gorm:"column:email;not null;unique" json:"email"`
 	Password  string    `gorm:"column:password" json:"password,omitempty" validate:"required"`
 	LoggedIn  bool      `gorm:"column:loggedin" json:"loggedin"`
 	Token     string    `gorm:"column:token" json:"token,omitempty"`
