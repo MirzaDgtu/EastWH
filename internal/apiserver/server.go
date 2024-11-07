@@ -88,8 +88,34 @@ func (s *server) configureRouter() {
 				userProjectGroup.PUT("/", s.UpdateUserProject)
 				userProjectGroup.DELETE("/", s.DeleteUserProject)
 			}
+			userRolesGroup := userGroup.Group("/roles")
+			{
+				userRolesGroup.POST("", s.AddUserRoles)
+				userRolesGroup.GET("", s.GetUserRoles)
+				userRolesGroup.GET("/user/", s.GetUserRolesByUserId)
+				userRolesGroup.GET("/role/", s.GetUserRolesByRoleId)
+			}
 
-			//userTeamsGroup
+			userRoleGroup := userGroup.Group("/role")
+			{
+				userRoleGroup.GET("/", s.GetUserRoleById)
+				userRoleGroup.PUT("/", s.UpdateUserRole)
+				userRoleGroup.DELETE("/", s.DeleteUserRole)
+			}
+
+			userTeamsGroup := userGroup.Group("/teams")
+			{
+				userTeamsGroup.POST("", s.AddUserTeams)
+				userTeamsGroup.GET("", s.GetUserTeams)
+				userTeamsGroup.GET("/user/", s.GetUserTeamsByUserId)
+				userTeamsGroup.GET("/team/", s.GetUserTeamsByTeamId)
+			}
+			userTeamGroup := userGroup.Group("team")
+			{
+				userTeamGroup.GET("/", s.GetUserTeamById)
+				userTeamGroup.PUT("/", s.UpdateUserTeam)
+				userTeamGroup.DELETE("/", s.DeleteUserTeam)
+			}
 		}
 
 		usersGroup := apiGroup.Group("/users")
@@ -1159,4 +1185,299 @@ func (s *server) DeleteRole(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "Роль успешно удалена"})
+}
+
+// UserRoles ...
+
+func (s *server) AddUserRoles(ctx *gin.Context) {
+	var userRoles []model.UserRole
+
+	err := ctx.ShouldBindJSON(&userRoles)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Ошибка чтения данных",
+			"error": err.Error()})
+		return
+	}
+
+	var addedUP []model.UserRole
+	for _, req := range userRoles {
+		userRoles, err := s.store.UserRole().Add(req)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка добавления роли пользователя",
+
+				"error": err.Error()})
+			continue
+		} else {
+			addedUP = append(addedUP, userRoles)
+		}
+	}
+	ctx.JSON(http.StatusCreated, addedUP)
+}
+
+func (s *server) GetUserRoles(ctx *gin.Context) {
+	up, err := s.store.UserRole().All()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения списка ролей пользователей",
+
+			"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, up)
+}
+
+func (s *server) GetUserRolesByUserId(ctx *gin.Context) {
+	pUserID := ctx.Query("user_id")
+	UserID, err := strconv.Atoi(pUserID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Проверьте корректность UserId",
+			"error": err.Error()})
+		return
+	}
+
+	UserRole, err := s.store.UserRole().ByUserID(uint(UserID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения списка проектов ролей по UserId",
+
+			"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, UserRole)
+}
+
+func (s *server) GetUserRolesByRoleId(ctx *gin.Context) {
+	pRoleID := ctx.Query("role_id")
+	RoleID, err := strconv.Atoi(pRoleID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Проверьте корректность RoleId",
+			"error": err.Error()})
+		return
+	}
+
+	UserRole, err := s.store.UserRole().ByRoleID(uint(RoleID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения списка ролей пользователей по RoleId",
+
+			"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, UserRole)
+}
+
+func (s *server) GetUserRoleById(ctx *gin.Context) {
+	pID := ctx.Query("id")
+	ID, err := strconv.Atoi(pID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Проверьте корректность ID",
+			"error": err.Error()})
+		return
+	}
+
+	userRole, err := s.store.UserRole().ByID(uint(ID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения роли пользователя по ID",
+
+			"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, userRole)
+}
+
+func (s *server) UpdateUserRole(ctx *gin.Context) {
+	pID := ctx.Query("id")
+	ID, err := strconv.Atoi(pID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Проверьте корректность ID",
+			"error": err.Error()})
+		return
+	}
+
+	var userRole model.UserRole
+	err = ctx.ShouldBindJSON(&userRole)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Проверьте корректность передаваемых данных",
+
+			"error": err.Error()})
+		return
+	}
+
+	userRole.ID = uint(ID)
+
+	userRole, err = s.store.UserRole().Update(userRole)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка обновления информации о роли пользователя",
+
+			"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Информация о роли пользователя успешно обновлена",
+		"user_role": userRole})
+}
+
+func (s *server) DeleteUserRole(ctx *gin.Context) {
+	pID := ctx.Query("id")
+	ID, err := strconv.Atoi(pID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Проверьте корректность ID",
+			"error": err.Error()})
+		return
+	}
+
+	err = s.store.UserRole().Delete(uint(ID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка удаления роли пользователя",
+
+			"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Роль пользователя успешно удалена"})
+}
+
+// UserTeams ...
+
+func (s *server) AddUserTeams(ctx *gin.Context) {
+	var userTeams []model.UserTeam
+
+	err := ctx.ShouldBindJSON(&userTeams)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Ошибка чтения данных",
+			"error": err.Error()})
+		return
+	}
+
+	var addedUP []model.UserTeam
+	for _, req := range userTeams {
+		userTeams, err := s.store.UserTeam().Add(req)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка добавления команды пользователя",
+
+				"error": err.Error()})
+			continue
+		} else {
+			addedUP = append(addedUP, userTeams)
+		}
+	}
+	ctx.JSON(http.StatusCreated, addedUP)
+}
+
+func (s *server) GetUserTeams(ctx *gin.Context) {
+	up, err := s.store.UserTeam().All()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения списка ролей пользователей",
+
+			"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, up)
+}
+
+func (s *server) GetUserTeamsByUserId(ctx *gin.Context) {
+	pUserID := ctx.Query("user_id")
+	UserID, err := strconv.Atoi(pUserID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Проверьте корректность UserId",
+			"error": err.Error()})
+		return
+	}
+
+	UserTeam, err := s.store.UserTeam().ByUserID(uint(UserID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения списка команд ролей по UserId",
+
+			"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, UserTeam)
+}
+
+func (s *server) GetUserTeamsByTeamId(ctx *gin.Context) {
+	pTeamID := ctx.Query("team_id")
+	TeamID, err := strconv.Atoi(pTeamID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Проверьте корректность TeamId",
+			"error": err.Error()})
+		return
+	}
+
+	UserRole, err := s.store.UserTeam().ByTeamID(uint(TeamID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения списка команд пользователей по TeamId",
+
+			"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, UserRole)
+}
+
+func (s *server) GetUserTeamById(ctx *gin.Context) {
+	pID := ctx.Query("id")
+	ID, err := strconv.Atoi(pID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Проверьте корректность ID",
+			"error": err.Error()})
+		return
+	}
+
+	userRole, err := s.store.UserTeam().ByID(uint(ID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения команды пользователя по ID",
+
+			"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, userRole)
+}
+
+func (s *server) UpdateUserTeam(ctx *gin.Context) {
+	pID := ctx.Query("id")
+	ID, err := strconv.Atoi(pID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Проверьте корректность ID",
+			"error": err.Error()})
+		return
+	}
+
+	var userTeam model.UserTeam
+	err = ctx.ShouldBindJSON(&userTeam)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Проверьте корректность передаваемых данных",
+
+			"error": err.Error()})
+		return
+	}
+
+	userTeam.ID = uint(ID)
+
+	userTeam, err = s.store.UserTeam().Update(userTeam)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка обновления информации о команде пользователя",
+
+			"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Информация о команде пользователя успешно обновлена",
+
+		"user_role": userTeam})
+}
+
+func (s *server) DeleteUserTeam(ctx *gin.Context) {
+	pID := ctx.Query("id")
+	ID, err := strconv.Atoi(pID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Проверьте корректность ID",
+			"error": err.Error()})
+		return
+	}
+
+	err = s.store.UserTeam().Delete(uint(ID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка удаления команды пользователя",
+
+			"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Команда пользователя успешно удалена"})
 }
