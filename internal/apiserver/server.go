@@ -78,15 +78,15 @@ func (s *server) configureRouter() {
 			{
 				userProjectsGroup.POST("", s.AddUserProjects)
 				userProjectsGroup.GET("", s.GetUserProjects)
-				userProjectsGroup.GET("/user/id/", s.GetUserProjectsByUserId)
-				userProjectsGroup.GET("/project/id/", s.GetUserProjectsByProjectId)
+				userProjectsGroup.GET("/user/", s.GetUserProjectsByUserId)
+				userProjectsGroup.GET("/project/", s.GetUserProjectsByProjectId)
 			}
 
 			userProjectGroup := userGroup.Group("/project")
 			{
-				userProjectGroup.GET("/id/", s.GetUserProjectById)
-				userProjectGroup.PUT("update/", s.UpdateUserProject)
-				userProjectGroup.DELETE("delete/", s.DeleteUserProject)
+				userProjectGroup.GET("/", s.GetUserProjectById)
+				userProjectGroup.PUT("/", s.UpdateUserProject)
+				userProjectGroup.DELETE("/", s.DeleteUserProject)
 			}
 
 			//userTeamsGroup
@@ -153,6 +153,19 @@ func (s *server) configureRouter() {
 			projectsGroup.POST("", s.AddProject)
 			projectsGroup.GET("", s.GetProjects)
 
+		}
+
+		rolesGroup := apiGroup.Group("/roles")
+		{
+			rolesGroup.POST("", s.AddRoles)
+			rolesGroup.GET("", s.GetRoles)
+		}
+
+		roleGroup := apiGroup.Group("/role")
+		{
+			roleGroup.GET("/", s.GetRoleByID)
+			roleGroup.PUT("/", s.UpdateRole)
+			roleGroup.DELETE("/", s.DeleteRole)
 		}
 	}
 }
@@ -1039,4 +1052,111 @@ func (s *server) DeleteUserProject(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "Проект пользователя успешно удален"})
+}
+
+// Roles
+
+func (s *server) AddRoles(ctx *gin.Context) {
+	var roles []model.Role
+
+	err := ctx.ShouldBindJSON(&roles)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Проверьте передаваемые данные",
+			"error": err.Error()})
+		return
+	}
+
+	var addedRoles []model.Role
+	for _, role := range roles {
+		role, err = s.store.Role().Add(role)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка добавления роли - " + role.Name,
+				"error": err.Error()})
+			continue
+		} else {
+			ctx.JSON(http.StatusCreated, gin.H{"message": "Роль " + role.Name + " успешно создана"})
+			addedRoles = append(addedRoles, role)
+		}
+	}
+
+	ctx.JSON(http.StatusCreated, gin.H{"message": "Создание ролей успешно завершено",
+		"roles": addedRoles})
+}
+
+func (s *server) GetRoles(ctx *gin.Context) {
+	roles, err := s.store.Role().All()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения списка ролей",
+			"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"roles": roles})
+}
+
+func (s *server) GetRoleByID(ctx *gin.Context) {
+	pID := ctx.Query("id")
+	ID, err := strconv.Atoi(pID)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Проверьте корректность ID",
+			"error": err.Error()})
+		return
+	}
+
+	role, err := s.store.Role().ByID(uint(ID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения роли по ID",
+			"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, role)
+}
+
+func (s *server) UpdateRole(ctx *gin.Context) {
+	pID := ctx.Query("id")
+	ID, err := strconv.Atoi(pID)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Проверьте корректность ID",
+			"error": err.Error()})
+		return
+	}
+
+	var role model.Role
+	err = ctx.ShouldBindJSON(&role)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Проверьте корректность изменяемых данных",
+			"error": err.Error()})
+		return
+	}
+
+	role.ID = uint(ID)
+	role, err = s.store.Role().Update(role)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка обновления данных роли",
+			"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Данные роли успешно обновлены",
+		"role": role})
+
+}
+
+func (s *server) DeleteRole(ctx *gin.Context) {
+	pID := ctx.Query("id")
+	ID, err := strconv.Atoi(pID)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Проверьте корректность ID",
+			"error": err.Error()})
+		return
+	}
+
+	err = s.store.Role().Delete(uint(ID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка удаления роли",
+			"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Роль успешно удалена"})
 }

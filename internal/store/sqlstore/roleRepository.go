@@ -19,8 +19,10 @@ func (r *RoleRepository) ByID(id uint) (role model.Role, err error) {
 	return role, r.store.db.First(&role, id).Error
 }
 
-func (r *RoleRepository) Update(u model.Role) (role model.Role, err error) {
-	return role, r.store.db.Model(&u).Update("name", u.Name).Error
+func (r *RoleRepository) Update(u model.Role) (model.Role, error) {
+	return u, r.store.db.Model(&u).Updates(map[string]interface{}{"name": u.Name,
+		"description": u.Description,
+		"priority":    u.Priority}).Error
 }
 
 func (r *RoleRepository) Delete(id uint) error {

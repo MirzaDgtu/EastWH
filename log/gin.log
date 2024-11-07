@@ -1,0 +1,62 @@
+[GIN-debug] [WARNING] Creating an Engine instance with the Logger and Recovery middleware already attached.
+
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] GET    /api/v1/ping              --> eastwh/internal/apiserver.(*server).configureRouter.func1 (5 handlers)
+[GIN-debug] POST   /api/v1/user/logout/      --> eastwh/internal/apiserver.(*server).Logout-fm (5 handlers)
+[GIN-debug] PUT    /api/v1/user/update/      --> eastwh/internal/apiserver.(*server).UpdateUser-fm (5 handlers)
+[GIN-debug] POST   /api/v1/user/update/password/ --> eastwh/internal/apiserver.(*server).UpdatePassword-fm (5 handlers)
+[GIN-debug] POST   /api/v1/user/block/       --> eastwh/internal/apiserver.(*server).BlockedUser-fm (5 handlers)
+[GIN-debug] GET    /api/v1/user/profile/     --> eastwh/internal/apiserver.(*server).GetUserProfile-fm (5 handlers)
+[GIN-debug] POST   /api/v1/user/projects     --> eastwh/internal/apiserver.(*server).AddUserProjects-fm (5 handlers)
+[GIN-debug] GET    /api/v1/user/projects     --> eastwh/internal/apiserver.(*server).GetUserProjects-fm (5 handlers)
+[GIN-debug] GET    /api/v1/user/projects/user/ --> eastwh/internal/apiserver.(*server).GetUserProjectsByUserId-fm (5 handlers)
+[GIN-debug] GET    /api/v1/user/projects/project/ --> eastwh/internal/apiserver.(*server).GetUserProjectsByProjectId-fm (5 handlers)
+[GIN-debug] GET    /api/v1/user/project/     --> eastwh/internal/apiserver.(*server).GetUserProjectById-fm (5 handlers)
+[GIN-debug] PUT    /api/v1/user/project/     --> eastwh/internal/apiserver.(*server).UpdateUserProject-fm (5 handlers)
+[GIN-debug] DELETE /api/v1/user/project/     --> eastwh/internal/apiserver.(*server).DeleteUserProject-fm (5 handlers)
+[GIN-debug] POST   /api/v1/users             --> eastwh/internal/apiserver.(*server).AddUser-fm (5 handlers)
+[GIN-debug] POST   /api/v1/users/login       --> eastwh/internal/apiserver.(*server).Login-fm (5 handlers)
+[GIN-debug] GET    /api/v1/users             --> eastwh/internal/apiserver.(*server).GetUsers-fm (5 handlers)
+[GIN-debug] POST   /api/v1/users/password/restore --> eastwh/internal/apiserver.(*server).RestoreUserPassword-fm (5 handlers)
+[GIN-debug] POST   /api/v1/employees         --> eastwh/internal/apiserver.(*server).AddEmployee-fm (5 handlers)
+[GIN-debug] GET    /api/v1/employees         --> eastwh/internal/apiserver.(*server).GetEmployees-fm (5 handlers)
+[GIN-debug] GET    /api/v1/employee/         --> eastwh/internal/apiserver.(*server).GetEmployeeByID-fm (5 handlers)
+[GIN-debug] PUT    /api/v1/employee/update/  --> eastwh/internal/apiserver.(*server).UpdateEmployee-fm (5 handlers)
+[GIN-debug] DELETE /api/v1/employee/delete/  --> eastwh/internal/apiserver.(*server).DeleteEmployee-fm (5 handlers)
+[GIN-debug] GET    /api/v1/order/            --> eastwh/internal/apiserver.(*server).GetOrderByID-fm (5 handlers)
+[GIN-debug] GET    /api/v1/order/uid/        --> eastwh/internal/apiserver.(*server).GetOrderByUID-fm (5 handlers)
+[GIN-debug] PUT    /api/v1/order/update/collector --> eastwh/internal/apiserver.(*server).UpdateOrderCollector-fm (5 handlers)
+[GIN-debug] GET    /api/v1/orders/user/      --> eastwh/internal/apiserver.(*server).GetOrdersByUserId-fm (5 handlers)
+[GIN-debug] GET    /api/v1/orders/daterange/ --> eastwh/internal/apiserver.(*server).GerOrderByDateRange-fm (5 handlers)
+[GIN-debug] POST   /api/v1/orders            --> eastwh/internal/apiserver.(*server).AddOrders-fm (5 handlers)
+[GIN-debug] GET    /api/v1/orders            --> eastwh/internal/apiserver.(*server).GetOrders-fm (5 handlers)
+[GIN-debug] GET    /api/v1/team/             --> eastwh/internal/apiserver.(*server).GetTeamByID-fm (5 handlers)
+[GIN-debug] PUT    /api/v1/team/update/      --> eastwh/internal/apiserver.(*server).UpdateTeam-fm (5 handlers)
+[GIN-debug] DELETE /api/v1/team/delete/      --> eastwh/internal/apiserver.(*server).DeleteTeam-fm (5 handlers)
+[GIN-debug] POST   /api/v1/teams             --> eastwh/internal/apiserver.(*server).AddTeams-fm (5 handlers)
+[GIN-debug] GET    /api/v1/teams             --> eastwh/internal/apiserver.(*server).GetTeams-fm (5 handlers)
+[GIN-debug] GET    /api/v1/project/id/       --> eastwh/internal/apiserver.(*server).GetProjectById-fm (5 handlers)
+[GIN-debug] DELETE /api/v1/project/delete/   --> eastwh/internal/apiserver.(*server).DeleteProject-fm (5 handlers)
+[GIN-debug] PUT    /api/v1/project/update/   --> eastwh/internal/apiserver.(*server).UpdateProject-fm (5 handlers)
+[GIN-debug] POST   /api/v1/projects          --> eastwh/internal/apiserver.(*server).AddProject-fm (5 handlers)
+[GIN-debug] GET    /api/v1/projects          --> eastwh/internal/apiserver.(*server).GetProjects-fm (5 handlers)
+[GIN-debug] POST   /api/v1/roles             --> eastwh/internal/apiserver.(*server).AddRoles-fm (5 handlers)
+[GIN-debug] GET    /api/v1/roles             --> eastwh/internal/apiserver.(*server).GetRoles-fm (5 handlers)
+[GIN-debug] GET    /api/v1/role/             --> eastwh/internal/apiserver.(*server).GetRoleByID-fm (5 handlers)
+[GIN-debug] PUT    /api/v1/role/             --> eastwh/internal/apiserver.(*server).UpdateRole-fm (5 handlers)
+[GIN-debug] DELETE /api/v1/role/             --> eastwh/internal/apiserver.(*server).DeleteRole-fm (5 handlers)
+[GIN-debug] [WARNING] You trusted all proxies, this is NOT safe. We recommend you to set a value.
+Please check https://pkg.go.dev/github.com/gin-gonic/gin#readme-don-t-trust-all-proxies for details.
+[GIN-debug] Listening and serving HTTP on :8091
+[GIN] 2024/11/07 - 10:16:00 | 200 |      4.5204ms |   172.16.55.175 | GET      "/api/v1/teams"
+[GIN] 2024/11/07 - 10:16:10 | 200 |      5.8819ms |   172.16.55.175 | GET      "/api/v1/projects"
+[GIN] 2024/11/07 - 10:38:58 | 200 |     16.8899ms |             ::1 | PUT      "/api/v1/role/?id=4"
+[GIN] 2024/11/07 - 10:39:25 | 200 |     44.4795ms |             ::1 | DELETE   "/api/v1/role/?id=4"
+[GIN-debug] [WARNING] Headers were already written. Wanted to override status code 500 with 201
+[GIN] 2024/11/07 - 10:39:31 | 500 |     50.2838ms |             ::1 | POST     "/api/v1/roles"
+[GIN-debug] [WARNING] Headers were already written. Wanted to override status code 500 with 201
+[GIN-debug] [WARNING] Headers were already written. Wanted to override status code 500 with 201
+[GIN] 2024/11/07 - 10:40:09 | 500 |     37.9623ms |             ::1 | POST     "/api/v1/roles"
