@@ -18,10 +18,6 @@ func (r *RoleRepository) ByID(id uint) (role model.Role, err error) {
 	return role, r.store.db.First(&role, id).Error
 }
 
-func (r *RoleRepository) ByName(name string) (role model.Role, err error) {
-	return role, r.store.db.Where("name=?", name).Find(&role).Error
-}
-
 func (r *RoleRepository) Update(model.Role) (role model.Role, err error) {
 	return role, r.store.db.Table("roles").Save(&role).Error
 }
