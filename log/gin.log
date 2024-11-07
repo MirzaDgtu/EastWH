@@ -51,12 +51,3 @@
 [GIN-debug] [WARNING] You trusted all proxies, this is NOT safe. We recommend you to set a value.
 Please check https://pkg.go.dev/github.com/gin-gonic/gin#readme-don-t-trust-all-proxies for details.
 [GIN-debug] Listening and serving HTTP on :8091
-[GIN] 2024/11/07 - 10:16:00 | 200 |      4.5204ms |   172.16.55.175 | GET      "/api/v1/teams"
-[GIN] 2024/11/07 - 10:16:10 | 200 |      5.8819ms |   172.16.55.175 | GET      "/api/v1/projects"
-[GIN] 2024/11/07 - 10:38:58 | 200 |     16.8899ms |             ::1 | PUT      "/api/v1/role/?id=4"
-[GIN] 2024/11/07 - 10:39:25 | 200 |     44.4795ms |             ::1 | DELETE   "/api/v1/role/?id=4"
-[GIN-debug] [WARNING] Headers were already written. Wanted to override status code 500 with 201
-[GIN] 2024/11/07 - 10:39:31 | 500 |     50.2838ms |             ::1 | POST     "/api/v1/roles"
-[GIN-debug] [WARNING] Headers were already written. Wanted to override status code 500 with 201
-[GIN-debug] [WARNING] Headers were already written. Wanted to override status code 500 with 201
-[GIN] 2024/11/07 - 10:40:09 | 500 |     37.9623ms |             ::1 | POST     "/api/v1/roles"
