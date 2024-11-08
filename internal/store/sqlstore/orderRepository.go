@@ -10,9 +10,9 @@ func (r *OrderRepository) Add(u model.Order) (model.Order, error) {
 	return u, r.store.db.Create(&u).Error
 }
 
-func (r *OrderRepository) SetCollector(orderid uint, keeper_id uint, collector_id uint) error {
-	err := r.store.db.Model(&model.Order{}).Where("id=?", orderid).Updates(map[string]interface{}{
-		"keeper_id":    keeper_id,
+func (r *OrderRepository) SetCollector(orderuid uint, user_id uint, collector_id uint) error {
+	err := r.store.db.Model(&model.Order{}).Where("order_uid=?", orderuid).Updates(map[string]interface{}{
+		"user_id":      user_id,
 		"collector_id": collector_id,
 	}).Error
 

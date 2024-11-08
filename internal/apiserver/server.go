@@ -146,7 +146,7 @@ func (s *server) configureRouter() {
 		{
 			orderGroup.GET("/", s.GetOrderByID)
 			orderGroup.GET("/uid/", s.GetOrderByUID)
-			orderGroup.PUT("/update/collector", s.UpdateOrderCollector)
+			orderGroup.PUT("/collector", s.UpdateOrderCollector)
 		}
 
 		ordersGroup := apiGroup.Group("/orders")
