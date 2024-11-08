@@ -10,6 +10,8 @@ type Employee struct {
 	LastName  string `json:"last_name"`
 	INN       string `gorm:"column:inn" json:"inn"`
 	Phone     string `json:"phone"`
+	Teams     []Team `gorm:"many2many:user_teams" json:"teams,omitempty"`
+	Users     []User `gorm:"many2many:user_teams" json:"users,omitempty"`
 }
 
 func (Employee) TableName() string {

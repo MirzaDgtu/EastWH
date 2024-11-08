@@ -861,9 +861,9 @@ func (s *server) GetOrdersByUserId(ctx *gin.Context) {
 
 func (s *server) UpdateOrderCollector(ctx *gin.Context) {
 	type request struct {
-		OrderUID    uint `json:"order_uid"`
-		UserID      uint `json:"user_id"`
-		CollectorID uint `json:"collector_id"`
+		OrderUID   uint `json:"order_uid"`
+		UserID     uint `json:"user_id"`
+		EmployeeID uint `json:"employee_id"`
 	}
 
 	var reqs []request
@@ -882,7 +882,7 @@ func (s *server) UpdateOrderCollector(ctx *gin.Context) {
 		wg.Add(1)
 		go func(req request) {
 			defer wg.Done()
-			if err := s.store.Order().SetCollector(req.OrderUID, req.UserID, req.CollectorID); err != nil {
+			if err := s.store.Order().SetCollector(req.OrderUID, req.UserID, req.EmployeeID); err != nil {
 				errors <- err
 			}
 		}(req)
