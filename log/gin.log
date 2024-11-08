@@ -66,4 +66,9 @@
 [GIN-debug] [WARNING] You trusted all proxies, this is NOT safe. We recommend you to set a value.
 Please check https://pkg.go.dev/github.com/gin-gonic/gin#readme-don-t-trust-all-proxies for details.
 [GIN-debug] Listening and serving HTTP on :8091
-[GIN] 2024/11/07 - 23:55:56 | 201 |     843.969ms |             ::1 | POST     "/api/v1/orders"
+[GIN] 2024/11/08 - 01:54:25 | 404 |       521.4µs |             ::1 | GET      "/http://localhost:8091/api/v1/ping"
+[GIN] 2024/11/08 - 01:55:42 | 404 |            0s |             ::1 | GET      "/http://localhost:8091/api/v1/ping"
+[GIN] 2024/11/08 - 01:56:54 | 404 |            0s |             ::1 | GET      "/http://localhost:8091/api/v1/ping"
+[GIN] 2024/11/08 - 02:02:19 | 404 |            0s |             ::1 | GET      "/http://localhost:8091/api/v1/ping"
+[GIN] 2024/11/08 - 02:05:35 | 404 |            0s |             ::1 | GET      "/http://localhost:8091/api/v1/ping"
+[GIN] 2024/11/08 - 02:08:37 | 200 |       522.8µs |             ::1 | GET      "/api/v1/ping"

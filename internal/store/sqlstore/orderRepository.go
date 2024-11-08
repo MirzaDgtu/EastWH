@@ -14,6 +14,8 @@ func (r *OrderRepository) SetCollector(orderid uint, keeper_id uint, collector_i
 	err := r.store.db.Model(&model.Order{}).Where("id=?", orderid).Updates(map[string]interface{}{
 		"keeper_id":    keeper_id,
 		"collector_id": collector_id,
+		"status":       1,
+		"done":         true,
 	}).Error
 
 	if err != nil {

@@ -916,35 +916,6 @@ func (s *server) GetOrdersByUserId(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, order)
 }
 
-/*
-func (s *server) UpdateOrderCollector(ctx *gin.Context) {
-	type request struct {
-		OrderUID    uint `json:"order_uid"`
-		KeeperID    uint `json:"keeper_id"`
-		CollectorID uint `json:"collector_id"`
-	}
-
-	var req request
-
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Проверьте корректность передаваемых данных",
-			"error": err.Error(),
-		})
-		return
-	}
-
-	err = s.store.Order().SetCollector(req.OrderUID, req.KeeperID, req.CollectorID)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка обновления данных заказа",
-			"error": err.Error()})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{"message": "Данные заказа успешно обновлены"})
-}
-*/
-
 func (s *server) UpdateOrderCollector(ctx *gin.Context) {
 	type request struct {
 		OrderUID    uint `json:"order_uid"`
