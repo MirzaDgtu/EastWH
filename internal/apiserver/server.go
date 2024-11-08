@@ -146,7 +146,7 @@ func (s *server) configureRouter() {
 		{
 			orderGroup.GET("/", s.GetOrderByID)
 			orderGroup.GET("/uid/", s.GetOrderByUID)
-			orderGroup.PUT("/update/collector", s.UpdateOrderCollector)
+			orderGroup.PUT("/collector", s.UpdateOrderCollector)
 		}
 
 		ordersGroup := apiGroup.Group("/orders")
@@ -497,33 +497,6 @@ func (s *server) GetUserProfile(ctx *gin.Context) {
 }
 
 // Employee...
-/*
-func (s *server) AddEmployee(ctx *gin.Context) {
-	var employees []model.Employee
-
-	err := ctx.ShouldBindJSON(&employees)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Ошибка чтения данных",
-			"error": err.Error()})
-		return
-	}
-
-	var addedEmployees []model.Employee
-	for _, req := range employees {
-		employee, err := s.store.Employee().Add(req)
-		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка добавления сотрудника",
-				"error": err.Error()})
-			continue
-		} else {
-			addedEmployees = append(addedEmployees, employee)
-		}
-	}
-
-	ctx.JSON(http.StatusCreated, addedEmployees)
-}
-*/
-
 // Employee handler with goroutines
 func (s *server) AddEmployee(ctx *gin.Context) {
 	var employees []model.Employee
@@ -698,34 +671,6 @@ func (s *server) DeleteEmployee(ctx *gin.Context) {
 }
 
 // Order...
-
-/*
-func (s *server) AddOrders(ctx *gin.Context) {
-	var orders []model.Order
-
-	err := ctx.ShouldBindJSON(&orders)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Ошибка проверки данных заказа",
-			"error": err.Error()})
-		return
-	}
-
-	var addedOrders []model.Order
-	for _, order := range orders {
-		order, err = s.store.Order().Add(order)
-		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка создания заказа",
-				"error": err.Error()})
-			continue
-		} else {
-			addedOrders = append(addedOrders, order)
-		}
-	}
-
-	ctx.JSON(http.StatusCreated, gin.H{"message": "Заказ успешно создан",
-		"order": addedOrders})
-}
-*/
 
 func (s *server) AddOrders(ctx *gin.Context) {
 	var orders []model.Order
@@ -916,99 +861,54 @@ func (s *server) GetOrdersByUserId(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, order)
 }
 
-/*
 func (s *server) UpdateOrderCollector(ctx *gin.Context) {
 	type request struct {
 		OrderUID    uint `json:"order_uid"`
-		KeeperID    uint `json:"keeper_id"`
-		CollectorID uint `json:"collector_id"`
-	}
-
-	var req request
-
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Проверьте корректность передаваемых данных",
-			"error": err.Error(),
-		})
-		return
-	}
-
-	err = s.store.Order().SetCollector(req.OrderUID, req.KeeperID, req.CollectorID)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка обновления данных заказа",
-			"error": err.Error()})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{"message": "Данные заказа успешно обновлены"})
-}
-*/
-
-func (s *server) UpdateOrderCollector(ctx *gin.Context) {
-	type request struct {
-		OrderUID    uint `json:"order_uid"`
-		KeeperID    uint `json:"keeper_id"`
+		UserID      uint `json:"user_id"`
 		CollectorID uint `json:"collector_id"`
 	}
 
 	var reqs []request
-
-	err := ctx.ShouldBindJSON(&reqs)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Проверьте корректность передаваемых данных",
-			"error": err.Error(),
+	if err := ctx.ShouldBindJSON(&reqs); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"message": "Проверьте корректность передаваемых данных",
+			"error":   err.Error(),
 		})
 		return
 	}
 
 	errors := make(chan error, len(reqs))
-
 	var wg sync.WaitGroup
 
 	for _, req := range reqs {
 		wg.Add(1)
 		go func(req request) {
-			err := s.store.Order().SetCollector(req.OrderUID, req.KeeperID, req.CollectorID)
-			if err != nil {
+			defer wg.Done()
+			if err := s.store.Order().SetCollector(req.OrderUID, req.UserID, req.CollectorID); err != nil {
 				errors <- err
 			}
 		}(req)
 	}
 
+	// Закрываем канал после завершения всех горутин
 	go func() {
 		wg.Wait()
 		close(errors)
 	}()
 
+	// Собираем ошибки
 	var errorMessages []string
-
-	for {
-		select {
-		case err, ok := <-errors:
-			if !ok {
-				errors = nil
-				continue
-			}
-			errorMessages = append(errorMessages, err.Error())
-
-		default:
-			if errors == nil {
-				goto Done
-			}
-		}
+	for err := range errors {
+		errorMessages = append(errorMessages, err.Error())
 	}
 
-Done:
-	response := gin.H{"errors": errorMessages}
-
 	if len(errorMessages) > 0 {
-		response["errors"] = errorMessages
-		ctx.JSON(http.StatusMultiStatus, response)
+		ctx.JSON(http.StatusMultiStatus, gin.H{"errors": errorMessages})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "Данные заказа успешно обновлены"})
+	// Возвращаем успешный статус, если ошибок нет
+	ctx.JSON(http.StatusOK, gin.H{"message": "Обновление выполнено успешно"})
 }
 
 func (s *server) GerOrderByDateRange(ctx *gin.Context) {
