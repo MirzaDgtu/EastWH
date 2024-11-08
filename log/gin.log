@@ -66,3 +66,19 @@
 [GIN-debug] [WARNING] You trusted all proxies, this is NOT safe. We recommend you to set a value.
 Please check https://pkg.go.dev/github.com/gin-gonic/gin#readme-don-t-trust-all-proxies for details.
 [GIN-debug] Listening and serving HTTP on :8091
+<<<<<<< HEAD
+=======
+[GIN] 2024/11/08 - 06:45:00 | 200 |       507.7µs |     172.16.1.11 | GET      "/api/v1/ping"
+[GIN] 2024/11/08 - 06:45:02 | 200 |    275.1193ms |     172.16.4.23 | POST     "/api/v1/users/login"
+[GIN] 2024/11/08 - 06:46:28 | 200 |    275.9221ms |     172.16.4.23 | POST     "/api/v1/users/login"
+[GIN] 2024/11/08 - 06:47:08 | 200 |     241.199ms |     172.16.4.23 | POST     "/api/v1/users/login"
+[GIN] 2024/11/08 - 06:48:42 | 200 |     262.349ms |     172.16.4.23 | POST     "/api/v1/users/login"
+[GIN] 2024/11/08 - 06:54:20 | 200 |    297.0003ms |     172.16.4.23 | POST     "/api/v1/users/login"
+[GIN] 2024/11/08 - 06:57:11 | 200 |    280.8305ms |     172.16.4.23 | POST     "/api/v1/users/login"
+[GIN] 2024/11/08 - 06:57:33 | 200 |    241.1028ms |     172.16.4.23 | POST     "/api/v1/users/login"
+[GIN] 2024/11/08 - 06:59:26 | 200 |    263.6719ms |     172.16.4.23 | POST     "/api/v1/users/login"
+[GIN] 2024/11/08 - 07:02:13 | 200 |    259.5446ms |     172.16.4.23 | POST     "/api/v1/users/login"
+[GIN] 2024/11/08 - 07:04:47 | 200 |     261.936ms |     172.16.4.23 | POST     "/api/v1/users/login"
+[GIN] 2024/11/08 - 07:05:10 | 200 |    252.4033ms |     172.16.4.23 | POST     "/api/v1/users/login"
+[GIN] 2024/11/08 - 07:10:07 | 200 |    415.4792ms |     172.16.4.23 | POST     "/api/v1/users/login"
+>>>>>>> 082382f2ae63c044c7b6bc24e3e103352e4d89a8

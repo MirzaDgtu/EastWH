@@ -497,7 +497,6 @@ func (s *server) GetUserProfile(ctx *gin.Context) {
 }
 
 // Employee...
-// Employee handler with goroutines
 func (s *server) AddEmployee(ctx *gin.Context) {
 	var employees []model.Employee
 
@@ -671,7 +670,6 @@ func (s *server) DeleteEmployee(ctx *gin.Context) {
 }
 
 // Order...
-
 func (s *server) AddOrders(ctx *gin.Context) {
 	var orders []model.Order
 
