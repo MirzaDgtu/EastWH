@@ -11,7 +11,7 @@ func (r *EmployeeRepository) Add(u model.Employee) (model.Employee, error) {
 }
 
 func (r *EmployeeRepository) All() (employee []model.Employee, err error) {
-	return employee, r.store.db.Table("employees").Select("*").Scan(&employee).Error
+	return employee, r.store.db.Table("employees").Select("*").Order("first_name").Order("name").Scan(&employee).Error
 }
 
 func (r *EmployeeRepository) ByID(id uint) (employee model.Employee, err error) {

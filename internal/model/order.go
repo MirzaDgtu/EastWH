@@ -8,6 +8,8 @@ type Order struct {
 	gorm.Model
 	OrderUid      int     `gorm:"column:order_uid;not null;unique" json:"order_uid"`
 	UnicumNum     int     `gorm:"column:unicum_num" json:"unicum_num"`
+	FolioNum      int     `gorm:"column:folio_num" json:"folio_num"`
+	FolioDate     string  `gorm:"column:folio_date" json:"folio_date"`
 	OrderDate     string  `gorm:"column:order_date;size:19" json:"order_date"`
 	OrderSum      float64 `gorm:"column:order_sum" json:"order_sum"`
 	Driver        string  `gorm:"column:driver;size:100" json:"driver"`

@@ -14,6 +14,7 @@ func (r *OrderRepository) SetCollector(orderuid uint, user_id uint, employee_id 
 	err := r.store.db.Model(&model.Order{}).Where("order_uid=?", orderuid).Updates(map[string]interface{}{
 		"user_id":     user_id,
 		"employee_id": employee_id,
+		"done":        1,
 	}).Error
 
 	if err != nil {
@@ -40,5 +41,5 @@ func (r *OrderRepository) ByDateRange(dtStart string, dtFinish string) (orders [
 }
 
 func (r *OrderRepository) All() (orders []model.Order, err error) {
-	return orders, r.store.db.Find(&orders).Error
+	return orders, r.store.db.Where("done=?", 0).Find(&orders).Error
 }
