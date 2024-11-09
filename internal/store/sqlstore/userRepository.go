@@ -113,11 +113,26 @@ func hashPassword(s *string) error {
 }
 
 func (r *UserRepository) All() (users []model.User, err error) {
-	return users, r.store.db.Preload("").Preload("").Preload("").Find(&users).Error
+	err = r.store.db.
+		Preload("Projects").
+		//Preload("").
+		//Preload("").
+		Find(&users).Error
+
+	for i := 0; i < len(users); i++ {
+		users[i].Password = ""
+	}
+
+	return users, err
 }
 
 func (r *UserRepository) Profile(id uint) (u model.User, err error) {
-	err = r.store.db.First(&u, id).Error
+	err = r.store.db.
+		//	Preload("TeamUsers.Team").
+		//Preload("TeamUsers.Employee").
+		Preload("Teams"). // если нужны и сами команды
+		//Preload("Teams.Employees"). // если нужны сотрудники команд
+		First(&u, id).Error
 	if err != nil {
 		return model.User{}, err
 	}

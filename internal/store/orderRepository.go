@@ -4,7 +4,7 @@ import "eastwh/internal/model"
 
 type OrderRepository interface {
 	Add(model.Order) (model.Order, error)
-	SetCollector(orderid uint, keeper_id uint, collector_id uint) error
+	SetCollector(orderuid uint, user_id uint, employee_id uint) error
 	ByUserID(uint) ([]model.Order, error)
 	ByID(uint) ([]model.Order, error)
 	ByOrderUID(uint) ([]model.Order, error)
