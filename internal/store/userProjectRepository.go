@@ -10,4 +10,5 @@ type UserProjectRepository interface {
 	ByProjectID(uint) ([]model.UserProject, error)
 	Update(model.UserProject) (model.UserProject, error)
 	Delete(uint) error
+	DeleteUserProject(uint, uint) error
 }

@@ -89,6 +89,7 @@ func (s *server) configureRouter() {
 				userProjectGroup.GET("/", s.GetUserProjectById)
 				userProjectGroup.PUT("/", s.UpdateUserProject)
 				userProjectGroup.DELETE("/", s.DeleteUserProject)
+				userProjectGroup.DELETE("/user/", s.DeleteProjectByUserID)
 			}
 			userRolesGroup := userGroup.Group("/roles")
 			{
@@ -146,22 +147,24 @@ func (s *server) configureRouter() {
 		{
 			orderGroup.GET("/", s.GetOrderByID)
 			orderGroup.GET("/uid/", s.GetOrderByUID)
-			orderGroup.PUT("/collector", s.UpdateOrderCollector)
+			orderGroup.PUT("/collector/", s.UpdateOrderCollector)
 		}
 
 		ordersGroup := apiGroup.Group("/orders")
 		{
 			ordersGroup.GET("/user/", s.GetOrdersByUserId)
-			ordersGroup.GET("/daterange/", s.GerOrderByDateRange)
+			ordersGroup.GET("/daterange/", s.GetOrdersByDateRange)
+			ordersGroup.POST("/access/", s.GetOrdersByAccessUser)
 			ordersGroup.POST("", s.AddOrders)
 			ordersGroup.GET("", s.GetOrders)
+			ordersGroup.GET("/assembly/", s.GetAssemblyOrders)
 		}
 
 		teamGroup := apiGroup.Group("/team")
 		{
 			teamGroup.GET("/", s.GetTeamByID)
-			teamGroup.PUT("/update/", s.UpdateTeam)
-			teamGroup.DELETE("/delete/", s.DeleteTeam)
+			teamGroup.PUT("/", s.UpdateTeam)
+			teamGroup.DELETE("/", s.DeleteTeam)
 		}
 
 		teamsGroup := apiGroup.Group("/teams")
@@ -172,9 +175,9 @@ func (s *server) configureRouter() {
 
 		projectGroup := apiGroup.Group("/project")
 		{
-			projectGroup.GET("/id/", s.GetProjectById)
-			projectGroup.DELETE("/delete/", s.DeleteProject)
-			projectGroup.PUT("/update/", s.UpdateProject)
+			projectGroup.GET("/", s.GetProjectById)
+			projectGroup.DELETE("/", s.DeleteProject)
+			projectGroup.PUT("/", s.UpdateProject)
 		}
 
 		projectsGroup := apiGroup.Group("/projects")
@@ -909,7 +912,7 @@ func (s *server) UpdateOrderCollector(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "Обновление выполнено успешно"})
 }
 
-func (s *server) GerOrderByDateRange(ctx *gin.Context) {
+func (s *server) GetOrdersByDateRange(ctx *gin.Context) {
 
 	type request struct {
 		DtStart  string `json:"dt_start"`
@@ -930,6 +933,63 @@ func (s *server) GerOrderByDateRange(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, findedOrders)
+}
+
+func (s *server) GetAssemblyOrders(ctx *gin.Context) {
+	type request struct {
+		StartDT  string `json:"start_dt"`
+		FinishDT string `json:"finish_dt"`
+	}
+
+	var req request
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Проверьте корректность передаваемых данных",
+			"error": err.Error()})
+		return
+	}
+
+	assemblyOrders, err := s.store.Order().AssemblyOrder(req.StartDT, req.FinishDT)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения списка собранных заказов",
+			"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Собранные заказы успешно получены",
+		"orders": assemblyOrders})
+}
+
+func (s *server) GetOrdersByAccessUser(ctx *gin.Context) {
+	pUserID := ctx.Query("user_id")
+	UserID, err := strconv.Atoi(pUserID)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Проверьте корректность user_id",
+			"error": err.Error()})
+		return
+	}
+
+	type request struct {
+		StartDT  string `json:"start_dt"`
+		FinishDT string `json:"finish_dt"`
+	}
+
+	var req request
+	err = ctx.ShouldBindJSON(&req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Проверьте коррекность передаваемых данных",
+			"error": err.Error()})
+		return
+	}
+
+	orders, err := s.store.Order().ByAccessUser(uint(UserID), req.StartDT, req.FinishDT)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения списка заказов",
+			"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, orders)
 }
 
 // Teams
@@ -1090,7 +1150,6 @@ func (s *server) GetProjectById(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK, project)
-
 }
 
 func (s *server) DeleteProject(ctx *gin.Context) {
@@ -1109,6 +1168,38 @@ func (s *server) DeleteProject(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{"message": "Данные проекта успешно удалены"})
+}
+
+func (s *server) DeleteProjectByUserID(ctx *gin.Context) {
+	pUserID := ctx.Query("user_id")
+	UserID, err := strconv.Atoi(pUserID)
+
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Проверьте корректность user_id",
+			"error": err.Error()})
+		return
+	}
+
+	type request struct {
+		ProjectID uint `json:"project_id"`
+	}
+
+	var req request
+	err = ctx.ShouldBindJSON(&req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Ошибка получения project_id",
+			"error": err.Error()})
+		return
+	}
+
+	err = s.store.UserProject().DeleteUserProject(uint(UserID), req.ProjectID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка удаления проекта пользователя",
+			"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Проект успешно удален"})
 }
 
 func (s *server) UpdateProject(ctx *gin.Context) {

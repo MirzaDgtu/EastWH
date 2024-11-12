@@ -1,6 +1,8 @@
 package sqlstore
 
-import "eastwh/internal/model"
+import (
+	"eastwh/internal/model"
+)
 
 type UserProjectRepository struct {
 	store *Store
@@ -22,6 +24,10 @@ func (r *UserProjectRepository) Delete(id uint) error {
 		return nil
 	}
 	return r.store.db.Delete(&up).Error
+}
+
+func (r *UserProjectRepository) DeleteUserProject(user_id, project_id uint) error {
+	return r.store.db.Exec("DELETE FROM user_projects WHERE user_id = ? and project_id = ?", user_id, project_id).Error
 }
 
 func (r *UserProjectRepository) ByID(Id uint) (up model.UserProject, err error) {
