@@ -10,4 +10,5 @@ type Store interface {
 	UserRole() UserRoleRepository
 	UserTeam() UserTeamRepository
 	UserProject() UserProjectRepository
+	EmployeeTeam() EmployeeTeamRepository
 }

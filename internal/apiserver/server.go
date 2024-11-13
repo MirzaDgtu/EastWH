@@ -91,6 +91,7 @@ func (s *server) configureRouter() {
 				userProjectGroup.DELETE("/", s.DeleteUserProject)
 				userProjectGroup.DELETE("/user/", s.DeleteProjectByUserID)
 			}
+
 			userRolesGroup := userGroup.Group("/roles")
 			{
 				userRolesGroup.POST("", s.AddUserRoles)
@@ -113,6 +114,7 @@ func (s *server) configureRouter() {
 				userTeamsGroup.GET("/user/", s.GetUserTeamsByUserId)
 				userTeamsGroup.GET("/team/", s.GetUserTeamsByTeamId)
 			}
+
 			userTeamGroup := userGroup.Group("team")
 			{
 				userTeamGroup.GET("/", s.GetUserTeamById)
@@ -141,6 +143,22 @@ func (s *server) configureRouter() {
 			employeeGroup.GET("/code/", s.GetEmployeeByCode)
 			employeeGroup.PUT("/", s.UpdateEmployee)
 			employeeGroup.DELETE("/", s.DeleteEmployee)
+
+			employeeTeamsGroup := employeeGroup.Group("/teams")
+			{
+				employeeTeamsGroup.POST("", s.AddEmployeeTeams)
+				employeeTeamsGroup.GET("", s.GetEmployeeTeams)
+				employeeTeamsGroup.GET("/employee", s.GetEmployeeTeamsByEmployeeId)
+				employeeTeamsGroup.GET("/team", s.GetEmployeeTeamsByTeamId)
+			}
+			employeeTeamGroup := employeeGroup.Group("/team")
+			{
+				employeeTeamGroup.GET("/", s.GetEmployeeTeamById)
+				employeeTeamGroup.PUT("/", s.UpdateEmployeeTeam)
+				employeeTeamGroup.DELETE("/id/", s.DeleteEmployeeTeam)
+				employeeTeamGroup.DELETE("/", s.DeleteEmployeeTeamByID)
+
+			}
 		}
 
 		orderGroup := apiGroup.Group("/order")
@@ -148,6 +166,7 @@ func (s *server) configureRouter() {
 			orderGroup.GET("/", s.GetOrderByID)
 			orderGroup.GET("/uid/", s.GetOrderByUID)
 			orderGroup.PUT("/collector/", s.UpdateOrderCollector)
+			orderGroup.PUT("/check", s.UpdateOrderCheck)
 		}
 
 		ordersGroup := apiGroup.Group("/orders")
@@ -157,7 +176,7 @@ func (s *server) configureRouter() {
 			ordersGroup.POST("/access/", s.GetOrdersByAccessUser)
 			ordersGroup.POST("", s.AddOrders)
 			ordersGroup.GET("", s.GetOrders)
-			ordersGroup.GET("/assembly/", s.GetAssemblyOrders)
+			ordersGroup.POST("/assembly/", s.GetAssemblyOrders)
 		}
 
 		teamGroup := apiGroup.Group("/team")
@@ -860,6 +879,32 @@ func (s *server) GetOrdersByUserId(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK, order)
+}
+
+func (s *server) UpdateOrderCheck(ctx *gin.Context) {
+	type request struct {
+		OrderUID uint `json:"order_uid"`
+		UserID   uint `json:"user_id"`
+		Check    bool `json:"check"`
+	}
+	var reqs []request
+	if err := ctx.ShouldBindJSON(&reqs); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"message": "Проверьте корректность передаваемых данных",
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	for _, req := range reqs {
+		err := s.store.Order().Check(req.OrderUID, req.UserID, req.Check)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка обновления информации",
+				"error": err.Error()})
+			continue
+		}
+	}
+	ctx.JSON(http.StatusOK, gin.H{"message": "Обновление выполнено успешно"})
 }
 
 func (s *server) UpdateOrderCollector(ctx *gin.Context) {
@@ -1770,4 +1815,160 @@ func (s *server) DeleteUserTeam(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "Команда пользователя успешно удалена"})
+}
+
+// EmployeeTeams ...
+
+func (s *server) AddEmployeeTeams(ctx *gin.Context) {
+	var employeeTeams []model.EmployeeTeam
+	err := ctx.ShouldBindJSON(&employeeTeams)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Ошибка чтения данных",
+			"error": err.Error()})
+		return
+	}
+
+	var addedET []model.EmployeeTeam
+	for _, req := range employeeTeams {
+		employeeTeams, err := s.store.EmployeeTeam().Add(req)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка добавления команды пользователя",
+
+				"error": err.Error()})
+			continue
+		} else {
+			addedET = append(addedET, employeeTeams)
+		}
+	}
+	ctx.JSON(http.StatusOK, addedET)
+}
+
+func (s *server) GetEmployeeTeams(ctx *gin.Context) {
+	et, err := s.store.EmployeeTeam().All()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения списка ролей пользователей",
+
+			"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, et)
+}
+
+func (s *server) GetEmployeeTeamsByEmployeeId(ctx *gin.Context) {
+	pEmployeeID := ctx.Query("employee_id")
+	EmployeeID, err := strconv.Atoi(pEmployeeID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Проверьте корректность EmployeeID",
+			"error": err.Error()})
+		return
+	}
+
+	EmployeeTeam, err := s.store.EmployeeTeam().ByEmployeeID(uint(EmployeeID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения списка команд ролей по EmployeeID",
+			"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, EmployeeTeam)
+}
+
+func (s *server) GetEmployeeTeamsByTeamId(ctx *gin.Context) {
+	pTeamID := ctx.Query("employee_id")
+	TeamID, err := strconv.Atoi(pTeamID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Проверьте корректность TeamID",
+			"error": err.Error()})
+		return
+	}
+
+	EmployeeTeam, err := s.store.EmployeeTeam().ByEmployeeID(uint(TeamID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения списка команд ролей по TeamID",
+			"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, EmployeeTeam)
+}
+
+func (s *server) GetEmployeeTeamById(ctx *gin.Context) {
+	pID := ctx.Query("id")
+	ID, err := strconv.Atoi(pID)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Провеьте корректность ID",
+			"error": err.Error()})
+		return
+	}
+
+	et, err := s.store.Employee().ByID(uint(ID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения команды пользователя по ID",
+
+			"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, et)
+}
+
+func (s *server) UpdateEmployeeTeam(ctx *gin.Context) {
+	pID := ctx.Query("id")
+	ID, err := strconv.Atoi(pID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Проверьте корректность ID",
+			"error": err.Error()})
+		return
+	}
+
+	var et model.EmployeeTeam
+	err = ctx.ShouldBindJSON(&et)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Проверьте корректность передаваемых данных",
+
+			"error": err.Error()})
+		return
+	}
+
+	et.ID = uint(ID)
+	et, err = s.store.EmployeeTeam().Update(et)
+
+	ctx.JSON(http.StatusOK, et)
+}
+
+func (s *server) DeleteEmployeeTeamByID(ctx *gin.Context) {
+	pID := ctx.Query("id")
+	ID, err := strconv.Atoi(pID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Проверьте корректность ID",
+			"error": err.Error()})
+		return
+	}
+
+	err = s.store.Employee().Delete(uint(ID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка удаления команды пользователя",
+
+			"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Запись успешно удалена"})
+}
+
+func (s *server) DeleteEmployeeTeam(ctx *gin.Context) {
+	var et model.EmployeeTeam
+	err := ctx.ShouldBindJSON(&et)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Проверьте корректность передаваемых данных",
+			"error": err.Error()})
+		return
+	}
+
+	err = s.store.EmployeeTeam().DeleteEmployeeTeam(et.EmployeeID, et.TeamID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка удаления команды сотрудника",
+			"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Запись успешно удалена"})
 }

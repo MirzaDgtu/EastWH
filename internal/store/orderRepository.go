@@ -12,4 +12,5 @@ type OrderRepository interface {
 	ByDateRange(string, string) ([]model.Order, error)
 	All() ([]model.Order, error)
 	AssemblyOrder(string, string) ([]model.AssemblyOrder, error)
+	Check(uint, uint, bool) error
 }

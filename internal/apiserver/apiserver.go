@@ -72,4 +72,5 @@ func dbMigrate(db *gorm.DB) {
 	db.AutoMigrate(&model.Role{})
 	db.AutoMigrate(&model.Team{})
 	db.AutoMigrate(&model.Project{})
+	db.AutoMigrate(&model.EmployeeTeam{})
 }

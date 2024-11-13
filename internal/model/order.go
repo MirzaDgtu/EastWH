@@ -27,6 +27,7 @@ type Order struct {
 	Status        int     `gorm:"column:status" json:"status"`
 	UserID        uint    `gorm:"column:user_id" json:"user_id"`
 	EmployeeID    uint    `gorm:"column:employee_id" json:"employee_id"`
+	Check         bool    `gorm:"column:check" json:"check"`
 }
 
 type AssemblyOrder struct {
