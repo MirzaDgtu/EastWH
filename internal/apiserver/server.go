@@ -113,6 +113,7 @@ func (s *server) configureRouter() {
 				userTeamsGroup.GET("", s.GetUserTeams)
 				userTeamsGroup.GET("/user/", s.GetUserTeamsByUserId)
 				userTeamsGroup.GET("/team/", s.GetUserTeamsByTeamId)
+				userTeamsGroup.DELETE("/", s.DeleteUserTeam)
 			}
 
 			userTeamGroup := userGroup.Group("team")
@@ -177,6 +178,7 @@ func (s *server) configureRouter() {
 			ordersGroup.POST("", s.AddOrders)
 			ordersGroup.GET("", s.GetOrders)
 			ordersGroup.POST("/assembly/", s.GetAssemblyOrders)
+			orderGroup.POST("/check", s.GetOrdersChecked)
 		}
 
 		teamGroup := apiGroup.Group("/team")
@@ -897,7 +899,7 @@ func (s *server) UpdateOrderCheck(ctx *gin.Context) {
 	}
 
 	for _, req := range reqs {
-		err := s.store.Order().Check(req.OrderUID, req.UserID, req.Check)
+		err := s.store.Order().SetCheck(req.OrderUID, req.UserID, req.Check)
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка обновления информации",
 				"error": err.Error()})
@@ -1035,6 +1037,32 @@ func (s *server) GetOrdersByAccessUser(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, orders)
+}
+
+func (s *server) GetOrdersChecked(ctx *gin.Context) {
+	type request struct {
+		StartDT  string `json:"start_dt"`
+		FinishDT string `json:"finish_dt"`
+		Check    bool   `json:"check"`
+	}
+
+	var req request
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Проверьте корректность передаваемых данных",
+			"error": err.Error()})
+		return
+	}
+
+	ChekedOrders, err := s.store.Order().CheckedList(req.StartDT, req.FinishDT, req.Check)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения списка собранных заказов",
+			"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Собранные заказы успешно получены",
+		"orders": ChekedOrders})
 }
 
 // Teams

@@ -1,6 +1,6 @@
 module eastwh
 
-go 1.23.1
+go 1.21.4
 
 require (
 	github.com/BurntSushi/toml v1.4.0 // indirect

@@ -1,7 +1,32 @@
-# Use root/example as user/password credentials
 version: '3.8'
 
 services:
+  app:
+    build: .
+    container_name: eastwh-app
+    ports:
+      - "8091:8091"
+    volumes:
+      - ./config:/app/config
+      - app_logs:/app/logs
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=pmp
+      - DB_PASSWORD=pmp1226
+      - DB_NAME=eastwh
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - mysql_network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8091/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
   mysql:
     image: mysql:8.0
     container_name: mysql-east
@@ -16,9 +41,17 @@ services:
       - mysql_data:/var/lib/mysql
     networks:
       - mysql_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "pmp", "-ppmp1226"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
 volumes:
   mysql_data:
+  app_logs:
 
 networks:
   mysql_network:
+    driver: bridge

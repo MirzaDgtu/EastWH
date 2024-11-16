@@ -57,6 +57,7 @@ func (r *OrderRepository) ByAccessUser(userID uint, startDT, finishDT string) (o
 									  AND	usp.user_id = ?
 									  AND o.folio_date between ? and ?
 									  AND o.Done = 0								
+									  AND o.Check = 0
 `, userID, startDT, finishDT).Scan(&orders).Error
 }
 
@@ -68,7 +69,7 @@ func (r *OrderRepository) AssemblyOrder(startDT, finishDT string) (assemblyOrder
 	`, startDT, finishDT).Scan(&assemblyOrders).Error
 }
 
-func (r *OrderRepository) Check(orderuid uint, user_id uint, check bool) error {
+func (r *OrderRepository) SetCheck(orderuid uint, user_id uint, check bool) error {
 	err := r.store.db.Model(&model.Order{}).Where("order_uid=?", orderuid).Updates(map[string]interface{}{
 		"user_id": user_id,
 		"check":   check,
@@ -78,4 +79,12 @@ func (r *OrderRepository) Check(orderuid uint, user_id uint, check bool) error {
 		return err
 	}
 	return nil
+}
+
+func (r *OrderRepository) CheckedList(startDT, finishDT string, checkStatus bool) (orders []model.Order, err error) {
+	return orders, r.store.db.Raw(`SELECT * 
+											FROM eastwh.orders o
+											where o.folio_date between ? and ?
+											AND IFNULL(o.check, 0) = ?
+	`, startDT, finishDT, checkStatus).Scan(&orders).Error
 }
