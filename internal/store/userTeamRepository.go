@@ -10,4 +10,5 @@ type UserTeamRepository interface {
 	ByTeamID(uint) ([]model.UserTeam, error)
 	Update(model.UserTeam) (model.UserTeam, error)
 	Delete(uint) error
+	DeleteUserTeam(uint, uint) error
 }

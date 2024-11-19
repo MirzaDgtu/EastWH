@@ -62,11 +62,13 @@ func (r *OrderRepository) ByAccessUser(userID uint, startDT, finishDT string) (o
 }
 
 func (r *OrderRepository) AssemblyOrder(startDT, finishDT string) (assemblyOrders []model.AssemblyOrder, err error) {
-	return assemblyOrders, r.store.db.Raw(`
-											SELECT * 
-											FROM eastwh.assembly_orders_vw ao
-											where ao.folio_date between ? and ?
-	`, startDT, finishDT).Scan(&assemblyOrders).Error
+	/*	return assemblyOrders, r.store.db.Raw(`
+												SELECT *
+												FROM eastwh.assembly_orders_vw ao
+												where ao.folio_date between ? and ?
+		`, startDT, finishDT).Scan(&assemblyOrders).Error
+	*/
+	return assemblyOrders, r.store.db.Raw("CALL `eastwh`.`get_assembly_orders`(?, ?)", startDT, finishDT).Scan(&assemblyOrders).Error
 }
 
 func (r *OrderRepository) SetCheck(orderuid uint, user_id uint, check bool) error {

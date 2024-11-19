@@ -113,7 +113,7 @@ func (s *server) configureRouter() {
 				userTeamsGroup.GET("", s.GetUserTeams)
 				userTeamsGroup.GET("/user/", s.GetUserTeamsByUserId)
 				userTeamsGroup.GET("/team/", s.GetUserTeamsByTeamId)
-				userTeamsGroup.DELETE("/", s.DeleteUserTeam)
+				userTeamsGroup.DELETE("/", s.DeleteUserTeamByID)
 			}
 
 			userTeamGroup := userGroup.Group("team")
@@ -1825,7 +1825,7 @@ func (s *server) UpdateUserTeam(ctx *gin.Context) {
 		"user_role": userTeam})
 }
 
-func (s *server) DeleteUserTeam(ctx *gin.Context) {
+func (s *server) DeleteUserTeamByID(ctx *gin.Context) {
 	pID := ctx.Query("id")
 	ID, err := strconv.Atoi(pID)
 	if err != nil {
@@ -1835,6 +1835,26 @@ func (s *server) DeleteUserTeam(ctx *gin.Context) {
 	}
 
 	err = s.store.UserTeam().Delete(uint(ID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка удаления команды пользователя",
+
+			"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Команда пользователя успешно удалена"})
+}
+
+func (s *server) DeleteUserTeam(ctx *gin.Context) {
+	var user_team model.UserTeam
+	err := ctx.ShouldBindJSON(&user_team)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Проверьте корректность передаваемых данных",
+			"error": err.Error()})
+		return
+	}
+
+	err = s.store.UserTeam().DeleteUserTeam(user_team.TeamID, user_team.UserID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка удаления команды пользователя",
 

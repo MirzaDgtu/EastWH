@@ -8,8 +8,8 @@ type Config struct {
 
 func NewConfig() *Config {
 	return &Config{
-		DatabaseURL: "pmp:pmp1226@(172.16.1.25:3306)/eastwh?parseTime=true",
-		BindAddr:    "127.0.0.1:8090",
+		DatabaseURL: "pmp:pmp1226@(nor.ru:3306)/eastwh?parseTime=true",
+		BindAddr:    "127.0.0.1:8091",
 		LogLevel:    "debug",
 	}
 }

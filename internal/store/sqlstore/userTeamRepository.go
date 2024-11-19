@@ -24,6 +24,10 @@ func (r *UserTeamRepository) Delete(id uint) error {
 	return r.store.db.Delete(&ut).Error
 }
 
+func (r *UserTeamRepository) DeleteUserTeam(team_id, user_id uint) error {
+	return r.store.db.Exec("DELETE FROM user_teams WHERE team_id = ? AND user_id = ?", team_id, user_id).Error
+}
+
 func (r *UserTeamRepository) ByID(ID uint) (ur model.UserTeam, err error) {
 	return ur, r.store.db.First(&ur, ID).Error
 }
