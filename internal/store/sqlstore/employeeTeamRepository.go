@@ -33,9 +33,9 @@ func (r *EmployeeTeamRepository) ByID(id uint) (et model.EmployeeTeam, err error
 }
 
 func (r *EmployeeTeamRepository) ByEmployeeID(employeeID uint) (et []model.EmployeeTeam, err error) {
-	return et, r.store.db.Where("team_id", employeeID).Find(&et).Error
+	return et, r.store.db.Where("employee_id = ?", employeeID).Find(&et).Error
 }
 
 func (r *EmployeeTeamRepository) ByTeamID(teamID uint) (et []model.EmployeeTeam, err error) {
-	return et, r.store.db.Where("team_id", teamID).Find(&et).Error
+	return et, r.store.db.Where("team_id = ?", teamID).Find(&et).Error
 }

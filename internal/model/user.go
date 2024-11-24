@@ -22,6 +22,11 @@ type User struct {
 	TeamUsers []UserTeam `gorm:"foreignKey:UserID" json:"team_users,omitempty"`
 }
 
+type UserEmployee struct {
+	ID   uint   `gorm:"column:"id" json:"id" `
+	Name string `gorm:"column:"name" json:"name" `
+}
+
 func (User) TableName() string {
 	return "users"
 }

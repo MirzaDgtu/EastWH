@@ -15,4 +15,5 @@ type UserRepository interface {
 	ByEmail(string) (model.User, error)
 	UpdateToken(uint, string) error
 	BlockedUser(uint, bool) error
+	EmployeeByUserID(uint) ([]model.UserEmployee, error)
 }

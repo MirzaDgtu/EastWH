@@ -71,10 +71,11 @@ func (s *server) configureRouter() {
 		userGroup := apiGroup.Group("/user") //, s.AuthMW
 		{
 			userGroup.POST("/logout/", s.Logout)
-			userGroup.PUT("/update/", s.UpdateUser)
+			userGroup.PUT("/", s.UpdateUser)
 			userGroup.POST("/update/password/", s.UpdatePassword)
 			userGroup.POST("/block/", s.BlockedUser)
 			userGroup.GET("/profile/", s.GetUserProfile)
+			userGroup.GET("/employees", s.GetEmployeeByUserID)
 
 			userProjectsGroup := userGroup.Group("/projects")
 			{
@@ -149,15 +150,15 @@ func (s *server) configureRouter() {
 			{
 				employeeTeamsGroup.POST("", s.AddEmployeeTeams)
 				employeeTeamsGroup.GET("", s.GetEmployeeTeams)
-				employeeTeamsGroup.GET("/employee", s.GetEmployeeTeamsByEmployeeId)
-				employeeTeamsGroup.GET("/team", s.GetEmployeeTeamsByTeamId)
+				employeeTeamsGroup.GET("/employee/", s.GetEmployeeTeamsByEmployeeId)
+				employeeTeamsGroup.GET("/team/", s.GetEmployeeTeamsByTeamId)
 			}
 			employeeTeamGroup := employeeGroup.Group("/team")
 			{
 				employeeTeamGroup.GET("/", s.GetEmployeeTeamById)
 				employeeTeamGroup.PUT("/", s.UpdateEmployeeTeam)
-				employeeTeamGroup.DELETE("/id/", s.DeleteEmployeeTeam)
-				employeeTeamGroup.DELETE("/", s.DeleteEmployeeTeamByID)
+				employeeTeamGroup.DELETE("/id/", s.DeleteEmployeeTeamByID)
+				employeeTeamGroup.DELETE("/", s.DeleteEmployeeTeam)
 
 			}
 		}
@@ -518,6 +519,23 @@ func (s *server) GetUserProfile(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, user)
+}
+
+func (s *server) GetEmployeeByUserID(ctx *gin.Context) {
+	pID := ctx.Query("user_id")
+	ID, err := strconv.Atoi(pID)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Проверьте корректность ID",
+			"error": err.Error()})
+		return
+	}
+	employee, err := s.store.User().EmployeeByUserID(uint(ID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения сотрудников",
+			"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, employee)
 }
 
 // Employee...
@@ -1913,7 +1931,7 @@ func (s *server) GetEmployeeTeamsByEmployeeId(ctx *gin.Context) {
 
 	EmployeeTeam, err := s.store.EmployeeTeam().ByEmployeeID(uint(EmployeeID))
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения списка команд ролей по EmployeeID",
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения списка команд по EmployeeID",
 			"error": err.Error()})
 		return
 	}
@@ -1991,7 +2009,7 @@ func (s *server) DeleteEmployeeTeamByID(ctx *gin.Context) {
 		return
 	}
 
-	err = s.store.Employee().Delete(uint(ID))
+	err = s.store.EmployeeTeam().Delete(uint(ID))
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка удаления команды пользователя",
 

@@ -15,7 +15,7 @@ func (r *TeamRepository) ByID(id uint) (team model.Team, err error) {
 }
 
 func (r *TeamRepository) All() (teams []model.Team, err error) {
-	return teams, r.store.db.Model(&model.Team{}).Find(&teams).Error
+	return teams, r.store.db.Model(&model.Team{}).Preload("Employees").Find(&teams).Error
 }
 
 func (r *TeamRepository) Update(u model.Team) (model.Team, error) {

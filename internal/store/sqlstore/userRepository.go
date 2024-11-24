@@ -130,8 +130,8 @@ func (r *UserRepository) Profile(id uint) (u model.User, err error) {
 	err = r.store.db.
 		//	Preload("TeamUsers.Team").
 		//Preload("TeamUsers.Employee").
-		Preload("Teams"). // если нужны и сами команды
-		//	Preload("Teams.Employees"). // если нужны сотрудники команд
+		Preload("Teams").           // если нужны и сами команды
+		Preload("Teams.Employees"). // если нужны сотрудники команд
 		Preload("Projects").
 		First(&u, id).Error
 	if err != nil {
@@ -139,6 +139,19 @@ func (r *UserRepository) Profile(id uint) (u model.User, err error) {
 	}
 	u.Password = ""
 	return u, nil
+}
+
+func (r *UserRepository) EmployeeByUserID(id uint) (u []model.UserEmployee, err error) {
+	return u, r.store.db.Raw(`SELECT e.id,
+	    CONCAT(e.first_name,
+                ' ',
+                e.name,
+                ' ',
+                e.last_name) AS name
+FROM user_teams utm
+	LEFT JOIN employee_teams etm on etm.team_id = utm.team_id
+    LEFT JOIN employees e on etm.employee_id = e.id
+WHERE ifnull(e.id, 0) != 0 and utm.user_id =?`, id).Scan(&u).Error
 }
 
 func (r *UserRepository) Update(u model.User) (model.User, error) {
